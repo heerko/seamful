@@ -1,4 +1,3 @@
-#include "DebugUtils.h"
 #include <LittleFS.h>
 #include <DNSServer.h>
 #include "WebServerUtils.h"
@@ -27,7 +26,7 @@ void customEndPoints() {
     if (!LittleFS.exists("/message.txt")) {
       File file = LittleFS.open("/message.txt", "w");
       if (!file) {
-        DEBUG_ERROR("Failed to create messages.txt for writing");
+        Serial.println("Failed to create messages.txt for writing");
         request->send(500, "text/plain", "Failed to create file for writing");
         return;
       }
@@ -40,7 +39,7 @@ void customEndPoints() {
       file.print(message->value() + "\n");
       file.close();
     } else {
-      DEBUG_INFO("No message param. Nothing to add.");
+      Serial.println("No message param. Nothing to add.");
     }
 
     String response = "Messages:\n";
@@ -56,7 +55,7 @@ void customEndPoints() {
 void setup() {
   Serial.begin(115200);
   if (!LittleFS.begin()) {
-    DEBUG_ERROR("Failed to mount LittleFS");
+    Serial.println("Failed to mount LittleFS");
     return;
   }
 
@@ -70,14 +69,13 @@ void setup() {
 }
 
 void loop() {
-  if (T3hasChanged) {
-    T3hasChanged = false;
-    bool isTouched = touchRead(T3) < threshold;
-    String message = String("{\"touch_status\":") + (isTouched ? "\"true\"" : "\"false\"") + "}";
-    ws.textAll(message);
-    DEBUG_VERBOSE(message);
-  }
-  DEBUG_INFO(".");
+  // if (T3hasChanged) {
+  //   T3hasChanged = false;
+  //   bool isTouched = touchRead(T3) < threshold;
+  //   String message = String("{\"touch_status\":") + (isTouched ? "\"true\"" : "\"false\"") + "}";
+  //   ws.textAll(message);
+  //   Serial.println(message);
+  // }
   dnsServer.processNextRequest();
   ws.cleanupClients();
 }

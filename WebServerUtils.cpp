@@ -1,17 +1,19 @@
-#include "DebugUtils.h"
 #include "WebServerUtils.h"
 
 // Functies voor bestandshandeling
 void listFiles() {
-    DEBUG_VERBOSE("Listing files on LittleFS:");
+    Serial.println("Listing files on LittleFS:");
     File root = LittleFS.open("/");
     if (!root) {
-        DEBUG_ERROR("Failed to open root directory");
+        Serial.println("Failed to open root directory");
         return;
     }
 
     while (File file = root.openNextFile()) {
-        DEBUG_VERBOSE("FILE: %s | SIZE: %d bytes\n", file.name(), file.size());
+        Serial.print("FILE: ");
+        Serial.print(file.name());
+        Serial.print(" SIZE: " );
+        Serial.println(file.size());
         file.close();
     }
 }
@@ -95,11 +97,12 @@ void setUpWebserver(AsyncWebServer &server, const IPAddress &localIP) {
     server.onNotFound([](AsyncWebServerRequest *request) {
         if (LittleFS.exists(request->url())) {
             request->send(LittleFS, request->url(), String(), false);
-            DEBUG_VERBOSE("Served " + request->url() + " from LittleFS");
+            Serial.print("Served from LittleFS: " ); + 
+            Serial.println(request->url());
         } else {
             request->redirect(localIPURL);
-            DEBUG_VERBOSE("onNotFound: ");
-            DEBUG_VERBOSE(request->url());
+            Serial.print("onNotFound: ");
+            Serial.println(request->url());
         }
     });
 
