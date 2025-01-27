@@ -16,6 +16,7 @@ void listFiles() {
         Serial.println(file.size());
         file.close();
     }
+    root.close();
 }
 
 void getSSIDFromFS() {
@@ -37,6 +38,7 @@ void getSSIDFromFS() {
         }
         file = root.openNextFile();
     }
+    root.close();
 }
 
 // Functies voor netwerk en serverinstellingen
