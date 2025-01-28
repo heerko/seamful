@@ -1,21 +1,67 @@
 <!DOCTYPE html>
 <html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Update Display</title>
-</head>
-<body>
-  <h1>Update Display</h1>
-  <form id="displayForm">
-    <label for="text">Text to Display:</label><br>
-    <input type="text" id="text" name="text" required><br><br>
-    <button type="submit">Update</button>
-  </form>
+  <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Seamfulness</title>
+    <style>
+      @font-face {
+        font-family: "adelphe";
+        src: url("Adelphe-FlorealRegular.woff2") format("woff2");
+      }
 
-  <p id="response"></p>
+      @font-face {
+        font-family: 'dindong';
+        src: url("DINdong.woff2") format("woff2");
+        font-display: swap;
+      }
 
-  <script>
+      html {
+        font-family: "Adelphe";
+      }
+
+      body {
+        background-color: yellow;
+        text-align: center;
+      }
+
+      h1 {
+        font-family: "dindong";
+        font-weight: normal;
+      }
+
+      .question {
+        font-family: "dindong";
+        font-size: 2rem;
+        font-weight: normal;
+        padding: 1rem;
+        text-align: center;
+      }
+
+      .disclaimer {
+        margin: 1rem;;
+      }
+    </style>
+  </head>
+  <body>
+    <select>
+      <option value="closed">Closed</option>
+      <option value="open">Open</option>
+      <option value="alt">Alt</option>
+    </select>
+    <h1>Loading</h1>
+    <div class="context"></div>
+    <div class="question"></div>
+    <form id="displayForm">
+      <label for="text">Type your answer (1 word):</label><br>
+      <input type="text" id="text" name="text" required maxlength="20"><br><br>
+      <button type="submit">Send</button>
+    </form>
+
+    <div class="disclaimer">Disclaimer: Your answer will be displayed on the screen in the patchwork.</div>
+    <p id="response"></p>
+
+    <script>
     const form = document.getElementById('displayForm');
     const responseElement = document.getElementById('response');
 
@@ -42,5 +88,80 @@
       }
     });
   </script>
-</body>
+    <script>
+    let sections = {
+      "closed": ["Closed Source – Opaque Systems", "Closed-source tools often present a polished exterior but keep their inner workings hidden. They prioritize seamlessness, but at what cost? Consider the unseen limitations, frustrations, and dependencies created by these systems. Reflect on how much control and understanding you truly have over the tools you rely on."],
+      "open": ["Open Source – Collaborative Tools", "Open-source tools invite you to engage with their inner workings. They are shaped by communities, shared knowledge, and adaptability. These tools provide opportunities for customization and empowerment but also require effort and understanding. Think about what openness means to you and how it influences creativity and agency in your work."],
+      "alt": ["Alternatives and Reflection – Reimagining Tools", "Imagine design tools unconstrained by corporate interests or predetermined workflows. What if you could shape your tools to meet your creative needs rather than adapting yourself to them? Reflect on what your ideal design environment would look like, how it would work, and what it could unlock in your creative practice."],
+    };
+    let questions = {
+      "closed" : [
+        "What limits you?",
+        "What frustrates you?",
+        "What’s hidden?",
+        "Who owns it?",
+        "What’s missing?",
+      ],
+      "open" : [
+        "What’s freedom?",
+        "What’s flexible?",
+        "What empowers?",
+        "What’s shared?",
+        "What’s customizable?",
+      ],
+      "alt": [
+        "What’s ideal?",
+        "What’s broken?",
+        "What’s inspiring?",
+        "What’s personal?",
+        "What’s your tool?",
+        "What’s necessary?",
+        "What’s next?",
+      ],
+    };
+  
+
+    let section = "closed";
+    
+    let titelEl = document.querySelector("h1");
+    let contextEl = document.getElementsByClassName("context")[0];
+    let questionEl = document.getElementsByClassName("question")[0];
+    // for testing:
+    let sel = document.querySelector('select');
+    let currentQuestion = 0;
+    let questionsInterval;
+
+    // wait for page load
+    window.addEventListener('load', () => {
+      // update after page load to be sure
+      titelEl = document.querySelector("h1");
+      contextEl = document.getElementsByClassName("context")[0];
+      questionEl = document.getElementsByClassName("question")[0];
+
+      sel = document.querySelector('select');
+      // updateWindow();
+      questionsInterval = setInterval(updateWindow, 1000);
+    });
+
+    function updateWindow() {
+      let title = sections[section][0];
+      let context = sections[section][1];
+      // let rndQuestionIndex = Math.floor(Math.random() * questions[section].length);
+      // let question = questions[section][rndQuestionIndex];
+      currentQuestion++;
+      if(currentQuestion >= questions[section].length) currentQuestion = 0;
+      let question = questions[section][currentQuestion];
+
+      titelEl.innerText = title;
+      contextEl.innerText = context;
+      questionEl.innerText = question;
+    }
+
+    sel.addEventListener('change', (e) => {
+      section = sel.value;
+      currentQuestion = 0;
+      updateWindow();
+    } );
+  </script>
+  </body>
 </html>
