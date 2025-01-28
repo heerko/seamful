@@ -5,12 +5,12 @@
 #include <Fonts/FreeMonoBold9pt7b.h>
 
 // E-Ink Display Configuration
-#define EPD_CS 15
-#define EPD_DC 2
-#define EPD_RST 17
-#define EPD_BUSY 16
-//GxDEPG0150BN
-GxEPD2_BW<GxEPD2_150_BN , GxEPD2_150_BN::HEIGHT> display(GxEPD2_150_BN(EPD_CS, EPD_DC, EPD_RST, EPD_BUSY));
+#define EPD_CS 5
+#define EPD_DC 17
+#define EPD_RST 16
+#define EPD_BUSY 4
+
+GxEPD2_BW<GxEPD2_213_BN, GxEPD2_213_BN::HEIGHT> display(GxEPD2_213_BN(EPD_CS, EPD_DC, EPD_RST, EPD_BUSY));
 
 char g_ssid[32] = "ESP_AP";  // set AP SSID. Can be overwritten by creating a file on LittleFS with extension .ssid
 
@@ -36,47 +36,84 @@ void setDisplayText(String text) {
   } while (display.nextPage());
 }
 
-void customEndPoints() {
-  // Berichtenopslag en -response
-  server.on("/message", HTTP_POST, [](AsyncWebServerRequest *request) {
-    if (!LittleFS.exists("/message.txt")) {
-      File file = LittleFS.open("/message.txt", "w");
-      if (!file) {
-        Serial.println("Failed to create messages.txt for writing");
-        request->send(500, "text/plain", "Failed to create file for writing");
-        return;
-      }
-      file.close();
-    }
-
-    if (request->hasParam("message", true)) {
-      const AsyncWebParameter *message = request->getParam("message", true);
-      File file = LittleFS.open("/message.txt", "a");
-      file.print(message->value() + "\n");
-      file.close();
-    } else {
-      Serial.println("No message param. Nothing to add.");
-    }
-
-    String response = "Messages:\n";
-    File file = LittleFS.open("/message.txt", "r");
-    while (file.available()) {
-      response += file.readStringUntil('\n') + "\n";
+void saveMessageToFile(const String &message) {
+  if (!LittleFS.exists("/message.txt")) {
+    File file = LittleFS.open("/message.txt", "w");
+    if (!file) {
+      Serial.println("Failed to create messages.txt for writing");
+      return;
     }
     file.close();
-    request->send(200, "text/plain", response);
-  });
+  }
 
-  server.on("/update-display", HTTP_POST, [](AsyncWebServerRequest *request) {
-    if (request->hasParam("text", true)) {
-      String text = request->getParam("text", true)->value();
-      setDisplayText(text);
+  File file = LittleFS.open("/message.txt", "a");
+  if (file) {
+    file.print(message + "\n");
+    file.close();
+  } else {
+    Serial.println("Failed to open message.txt for appending");
+  }
+}
 
-      request->send(200, "text/plain", "Display updated with: " + text);
+String getMessagesFromFile() {
+  String response = "Messages:\n";
+
+  if (LittleFS.exists("/message.txt")) {
+    File file = LittleFS.open("/message.txt", "r");
+    if (file) {
+      while (file.available()) {
+        response += file.readStringUntil('\n') + "\n";
+      }
+      file.close();
     } else {
-      request->send(400, "text/plain", "No text provided!");
+      Serial.println("Failed to open message.txt for reading");
     }
-  });
+  } else {
+    response += "No messages found.\n";
+  }
+
+  return response;
+}
+
+void handleMessageEndpoint(AsyncWebServerRequest *request) {
+  String response = "ok";
+
+  if (request->hasParam("message", true)) {
+    const AsyncWebParameter *message = request->getParam("message", true);
+    saveMessageToFile(message->value());
+  } else {
+    Serial.println("No message param. Nothing to add.");
+    response = "Something went wrong. Sorry.";
+  }
+
+  // String response = getMessagesFromFile();
+  
+  request->send(200, "text/plain", response);
+}
+
+void handleMessagesTxtEndpoint(AsyncWebServerRequest *request) {
+  if (LittleFS.exists("/message.txt")) {
+    request->send(LittleFS, "/message.txt", "text/plain");
+  } else {
+    request->send(404, "text/plain", "File not found.");
+  }
+}
+
+void handleUpdateDisplayEndpoint(AsyncWebServerRequest *request) {
+  if (request->hasParam("text", true)) {
+    String text = request->getParam("text", true)->value();
+    setDisplayText(text);
+    saveMessageToFile(text);
+    request->send(200, "text/plain", "Display updated with: " + text);
+  } else {
+    request->send(400, "text/plain", "No text provided!");
+  }
+}
+
+void customEndPoints() {
+  server.on("/message", HTTP_POST, handleMessageEndpoint);
+  server.on("/messages.txt", HTTP_GET, handleMessagesTxtEndpoint);
+  server.on("/update-display", HTTP_POST, handleUpdateDisplayEndpoint);
 }
 
 
