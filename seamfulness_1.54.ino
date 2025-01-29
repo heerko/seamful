@@ -3,6 +3,7 @@
 #include "WebServerUtils.h"
 #include <GxEPD2_BW.h>
 #include <Fonts/FreeMonoBold9pt7b.h>
+#include "ESPNowUtils.h"
 #include "ConfigClass.h"
 
 // E-Ink Display Configuration
@@ -24,6 +25,8 @@ const IPAddress localIP(4, 3, 2, 1);
 const IPAddress gatewayIP(4, 3, 2, 1);
 const IPAddress subnetMask(255, 255, 255, 0);
 const char localIPURL[] = "http://4.3.2.1";
+
+const int WIFI_CHANNEL = 1;
 
 Config config;
   display.setFullWindow();
@@ -105,6 +108,7 @@ void handleUpdateDisplayEndpoint(AsyncWebServerRequest *request) {
     String text = request->getParam("text", true)->value();
     setDisplayText(text);
     saveMessageToFile(text);
+    sendData(text);
     request->send(200, "text/plain", "Display updated with: " + text);
   } else {
     request->send(400, "text/plain", "No text provided!");
@@ -148,6 +152,11 @@ void setup() {
   setUpDNSServer(dnsServer, localIP);
   setUpWebserver(server, localIP);
   customEndPoints();
+
+  InitESPNow();
+  esp_now_register_send_cb(OnDataSent);
+  esp_now_register_recv_cb(OnDataRecv);
+  initBroadcastClients();
   if (config.role == "AP") {
     showQRCode();
   }
