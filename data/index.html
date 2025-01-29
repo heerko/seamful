@@ -41,6 +41,11 @@
       .disclaimer {
         margin: 1rem;;
       }
+
+      .feedback {
+        color: red;
+        display: block;
+      }
     </style>
   </head>
   <body>
@@ -55,7 +60,9 @@
     <form id="displayForm">
       <label for="text">Type your answer (1 word):</label><br>
       <input type="text" id="text" name="text" required maxlength="20"><br><br>
+      <input type="hidden" id="question_text" name="question_text">
       <button type="submit">Send</button>
+      <span class="feedback"></span>
     </form>
 
     <div class="disclaimer">Disclaimer: Your answer will be displayed on the screen in the patchwork.</div>
@@ -69,17 +76,26 @@
       event.preventDefault();
       const formData = new FormData(form);
       const text = formData.get('text');
+      const question = formData.get('question_text');
+      const feedbackEl = document.querySelector(".feedback");
+      feedbackEl.textContent = "";
+      responseElement.textContent = "";
+      
+      if(text.split(" ").length > 1) {
+        feedbackEl.innerHTML = "Please answer in a single word.";
+        return;
+      }
 
       try {
         const response = await fetch('/update-display', {
           method: 'POST',
           headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-          body: `text=${encodeURIComponent(text)}`
+          body: `text=${encodeURIComponent(text)}&question=${encodeURIComponent(question)}`
         });
 
         if (response.ok) {
           const responseText = await response.text();
-          responseElement.textContent = responseText;
+          responseElement.textContent = "Send!";
         } else {
           responseElement.textContent = `Error: ${response.status} ${response.statusText}`;
         }
@@ -126,6 +142,7 @@
     let titelEl = document.querySelector("h1");
     let contextEl = document.getElementsByClassName("context")[0];
     let questionEl = document.getElementsByClassName("question")[0];
+    let questionFormEl = document.getElementById('question_text');
     // for testing:
     let sel = document.querySelector('select');
     let currentQuestion = 0;
@@ -146,6 +163,7 @@
     function updateWindow() {
       let title = sections[section][0];
       let context = sections[section][1];
+      questionFormEl.value = section;
       // let rndQuestionIndex = Math.floor(Math.random() * questions[section].length);
       // let question = questions[section][rndQuestionIndex];
       currentQuestion++;
