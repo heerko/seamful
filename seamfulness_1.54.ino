@@ -3,6 +3,7 @@
 #include "WebServerUtils.h"
 #include <GxEPD2_BW.h>
 #include <Fonts/FreeMonoBold9pt7b.h>
+#include "ConfigClass.h"
 
 // E-Ink Display Configuration
 #define EPD_CS 5
@@ -24,7 +25,7 @@ const IPAddress gatewayIP(4, 3, 2, 1);
 const IPAddress subnetMask(255, 255, 255, 0);
 const char localIPURL[] = "http://4.3.2.1";
 
-void setDisplayText(String text) {
+Config config;
   display.setFullWindow();
   display.setFont(&FreeMonoBold9pt7b);
   display.setTextColor(GxEPD_BLACK);  // Tekstkleur
@@ -117,16 +118,7 @@ void customEndPoints() {
 }
 
 
-void helloWorld() {
-  display.setFullWindow();
-  display.setTextColor(GxEPD_BLACK);
-  int16_t tbx, tby;
-  uint16_t tbw, tbh;
-  display.getTextBounds("Hello World!", 0, 0, &tbx, &tby, &tbw, &tbh);
-  uint16_t x = ((display.width() - tbw) / 2) - tbx;
-  uint16_t y = ((display.height() - tbh) / 2) - tby;
-  display.firstPage();
-  do {
+  String wifiData = "WIFI:S:" + config.ssid + ";T:nopass;;";
     display.fillScreen(GxEPD_WHITE);
     display.setCursor(x, y);
     display.print("Hello World!");
@@ -145,14 +137,20 @@ void setup() {
   display.setRotation(1);
   display.setFont(&FreeMonoBold9pt7b);
   
-  helloWorld();  // Show initial content
+  config.load();  // Load configuration
 
-  listFiles();
-  getSSIDFromFS();
+  if (config.role == "ap") {
   startSoftAccessPoint(g_ssid, NULL, localIP, gatewayIP);
+  } else {
+    Serial.println("Starting WiFi in STA Mode");
+    WiFi.mode(WIFI_STA);
+  }
   setUpDNSServer(dnsServer, localIP);
   setUpWebserver(server, localIP);
   customEndPoints();
+  if (config.role == "AP") {
+    showQRCode();
+  }
 }
 
 void loop() {
