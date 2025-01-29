@@ -1,24 +1,5 @@
 #include "WebServerUtils.h"
 
-// Functies voor bestandshandeling
-void listFiles() {
-    Serial.println("Listing files on LittleFS:");
-    File root = LittleFS.open("/");
-    if (!root) {
-        Serial.println("Failed to open root directory");
-        return;
-    }
-
-    while (File file = root.openNextFile()) {
-        Serial.print("FILE: ");
-        Serial.print(file.name());
-        Serial.print(" SIZE: " );
-        Serial.println(file.size());
-        file.close();
-    }
-    root.close();
-}
-
 void getSSIDFromFS() {
     File root = LittleFS.open("/");
     File file = root.openNextFile();
@@ -48,9 +29,16 @@ void setUpDNSServer(DNSServer &dnsServer, const IPAddress &localIP) {
 }
 
 void startSoftAccessPoint(const char *ssid, const char *password, const IPAddress &localIP, const IPAddress &gatewayIP) {
-    WiFi.mode(WIFI_MODE_AP);
+    // WiFi.mode(WIFI_MODE_AP);
+    WiFi.mode(WIFI_AP_STA); // Enable both AP and STA modes for ESP-NOW
     WiFi.softAPConfig(localIP, gatewayIP, subnetMask);
-    WiFi.softAP(ssid, password);
+    if (WiFi.softAP(ssid, password, WIFI_CHANNEL)) {
+        Serial.println("Access Point started successfully");
+        Serial.print("AP IP address: ");
+        Serial.println(WiFi.softAPIP());
+    } else {
+       Serial.println("Failed to start Access Point");
+    }
 }
 
 void setUpWebserver(AsyncWebServer &server, const IPAddress &localIP) {
