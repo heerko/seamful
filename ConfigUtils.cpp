@@ -1,12 +1,12 @@
-#include "ConfigClass.h"
+#include "ConfigUtils.h"
 #include <LittleFS.h>
 #include <ArduinoJson.h>
 
 // Constructor implementation
-Config::Config() : role("ap"), topic("closed"), ssid("set_ssid_in_config_json"), channel(1) {}
+ConfigUtils::ConfigUtils() : role("ap"), topic("closed"), ssid("set_ssid_in_config_json"), channel(1) {}
 
 // Method to load configuration from file
-void Config::load() {
+void ConfigUtils::load() {
     File configFile = LittleFS.open("/config.json", "r");
     if (!configFile) {
         Serial.println("Failed to open config file");
@@ -33,7 +33,7 @@ void Config::load() {
 }
 
 // Method to save configuration to file
-void Config::save() {
+void ConfigUtils::save() {
     File configFile = LittleFS.open("/config.json", "w");
     if (!configFile) {
         Serial.println("Failed to open config file for writing");

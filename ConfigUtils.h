@@ -1,18 +1,18 @@
-#ifndef CONFIG_CLASS_H
-#define CONFIG_CLASS_H
+#ifndef CONFIG_UTILS_H
+#define CONFIG_UTILS_H
 
 #include <Arduino.h> // Required for String
 
-class Config {
+class ConfigUtils {
 public:
     String role;
     String topic;
     String ssid;
     int channel;
 
-    Config();        // Constructor declaration
+    ConfigUtils();        // Constructor declaration
     void load();     // Method declarations
     void save();
 };
 
-#endif // CONFIG_CLASS_H
+#endif // CONFIG_UTILS_H

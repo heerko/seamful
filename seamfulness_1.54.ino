@@ -1,15 +1,17 @@
+
 #include <LittleFS.h>
 #include <DNSServer.h>
-#include "WebServerUtils.h"
 #include <GxEPD2_BW.h>
 #include <Fonts/FreeMonoBold9pt7b.h>
 #include <Fonts/FreeSerif18pt7b.h>
-#include "ESPNowUtils.h"
-#include "FileSystemUtils.h"
 #include <ArduinoJson.h>
-#include </Users/hrko/_DEV/Arduino/TTGO_T5_Epaper/libraries/QRCode/src/qrcode.h>
-#include </Users/hrko/_DEV/Arduino/TTGO_T5_Epaper/libraries/QRCode/src/qrcode.c>
-#include "ConfigClass.h"
+#include <QRCodeGenerator.h>
+
+// parts.
+#include "WebServerUtils.h"
+#include "FileSystemUtils.h"
+#include "ESPNowUtils.h"
+#include "ConfigUtils.h"
 
 // E-Ink Display Configuration
 #define EPD_CS 5
@@ -19,7 +21,7 @@
 
 GxEPD2_BW<GxEPD2_213_BN, GxEPD2_213_BN::HEIGHT> display(GxEPD2_213_BN(EPD_CS, EPD_DC, EPD_RST, EPD_BUSY));
 QRCode qrcode;
-// uint8_t qrcodeData[128];  // Buffer for QR code data (adjust size based on version)
+uint8_t qrcodeData[128];  // Buffer for QR code data (adjust size based on version)
 
 
 char g_ssid[32] = "ESP_AP";  // set AP SSID. Can be overwritten by creating a file on LittleFS with extension .ssid
@@ -36,7 +38,7 @@ const char localIPURL[] = "http://4.3.2.1";
 
 const int WIFI_CHANNEL = 1;
 
-Config config;
+ConfigUtils config;
 
 
 void setDisplayText(String header, String text) {
