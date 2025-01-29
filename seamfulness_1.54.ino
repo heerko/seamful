@@ -4,6 +4,9 @@
 #include <GxEPD2_BW.h>
 #include <Fonts/FreeMonoBold9pt7b.h>
 #include "ESPNowUtils.h"
+#include "FileSystemUtils.h"
+#include <ArduinoJson.h>
+#include </Users/hrko/_DEV/Arduino/TTGO_T5_Epaper/libraries/QRCode/src/qrcode.h>
 #include "ConfigClass.h"
 
 // E-Ink Display Configuration
@@ -38,45 +41,6 @@ Config config;
     display.setCursor(10, 30);        // Positie van de tekst
     display.print(text);
   } while (display.nextPage());
-}
-
-void saveMessageToFile(const String &message) {
-  if (!LittleFS.exists("/message.txt")) {
-    File file = LittleFS.open("/message.txt", "w");
-    if (!file) {
-      Serial.println("Failed to create messages.txt for writing");
-      return;
-    }
-    file.close();
-  }
-
-  File file = LittleFS.open("/message.txt", "a");
-  if (file) {
-    file.print(message + "\n");
-    file.close();
-  } else {
-    Serial.println("Failed to open message.txt for appending");
-  }
-}
-
-String getMessagesFromFile() {
-  String response = "Messages:\n";
-
-  if (LittleFS.exists("/message.txt")) {
-    File file = LittleFS.open("/message.txt", "r");
-    if (file) {
-      while (file.available()) {
-        response += file.readStringUntil('\n') + "\n";
-      }
-      file.close();
-    } else {
-      Serial.println("Failed to open message.txt for reading");
-    }
-  } else {
-    response += "No messages found.\n";
-  }
-
-  return response;
 }
 
 void handleMessageEndpoint(AsyncWebServerRequest *request) {
