@@ -5,7 +5,7 @@
 
 class ConfigUtils {
 public:
-    String role;
+    int is_ap;
     String topic;
     String ssid;
     int channel;

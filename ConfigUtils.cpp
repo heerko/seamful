@@ -3,7 +3,7 @@
 #include <ArduinoJson.h>
 
 // Constructor implementation
-ConfigUtils::ConfigUtils() : role("ap"), topic("closed"), ssid("set_ssid_in_config_json"), channel(1) {}
+ConfigUtils::ConfigUtils() : is_ap(1), topic("closed"), ssid("set_ssid_in_config_json"), channel(1) {}
 
 // Method to load configuration from file
 void ConfigUtils::load() {
@@ -21,7 +21,7 @@ void ConfigUtils::load() {
         return;
     }
 
-    role = doc["role"] | "ap";
+    is_ap = doc["is_ap"] | 1;
     topic = doc["topic"] | "closed";
     ssid = doc["ssid"] | "set_ssid_in_config_json";
     channel = doc["channel"] | 1;
@@ -41,7 +41,7 @@ void ConfigUtils::save() {
     }
 
     StaticJsonDocument<256> doc;
-    doc["role"] = role;
+    doc["is_ap"] = is_ap;
     doc["topic"] = topic;
     doc["ssid"] = ssid;
     doc["channel"] = channel;

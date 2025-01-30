@@ -1,5 +1,5 @@
 {
-    "role": "ap",
+    "is_ap": 1,
     "topic": "open",
     "ssid": "seamful",
     "channel" : 1

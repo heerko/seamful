@@ -167,7 +167,7 @@ void setup() {
   strncpy(g_ssid, config.ssid.c_str(), sizeof(g_ssid) - 1);
   g_ssid[sizeof(g_ssid) - 1] = '\0';
 
-  if (config.role == "ap") {
+  if (config.is_ap == 1) {
     startSoftAccessPoint(g_ssid, NULL, localIP, gatewayIP);
   } else {
     Serial.println("Starting WiFi in STA Mode");
@@ -184,7 +184,7 @@ void setup() {
   esp_now_register_send_cb(OnDataSent);
   esp_now_register_recv_cb(OnDataRecv);
   initBroadcastClients();
-  if (config.role == "AP") {
+  if (config.is_ap == 1) {
     showQRCode();
   }
 }
