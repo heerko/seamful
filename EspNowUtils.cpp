@@ -26,8 +26,12 @@ void initBroadcastClients() {
 }
 
 void sendData(const String &message) {
-  esp_err_t result = esp_now_send(client.peer_addr, (uint8_t *)message.c_str(), message.length() + 1);
-  Serial.print("Send Status: ");
+  // prepend the message with the topicIndex and a "|"
+  String msg = (String)topicIndex + "|" + message;
+  esp_err_t result = esp_now_send(client.peer_addr, (uint8_t *)msg.c_str(), msg.length() + 1);
+  Serial.print("Send esp-now message: ");
+  Serial.print( msg );
+  Serial.print(" Status: ");
   switch (result) {
     case ESP_OK: Serial.println("Success"); break;
     case ESP_ERR_ESPNOW_NOT_INIT: Serial.println("ESPNOW not Init."); break;
@@ -47,14 +51,23 @@ void OnDataSent(const uint8_t *mac_addr, esp_now_send_status_t status) {
 }
 
 void OnDataRecv(const esp_now_recv_info *info, const uint8_t *data, int data_len) {
-  char macStr[18];
-  snprintf(macStr, sizeof(macStr), "%02X:%02X:%02X:%02X:%02X:%02X",
-           info->src_addr[0], info->src_addr[1], info->src_addr[2],
-           info->src_addr[3], info->src_addr[4], info->src_addr[5]);
-  Serial.printf("Received message from: %s\n", macStr);
+    char macStr[18];
+    snprintf(macStr, sizeof(macStr), "%02X:%02X:%02X:%02X:%02X:%02X",
+             info->src_addr[0], info->src_addr[1], info->src_addr[2],
+             info->src_addr[3], info->src_addr[4], info->src_addr[5]);
+    Serial.printf("Received message from: %s\n", macStr);
 
-  char receivedMessage[data_len + 1];
-  memcpy(receivedMessage, data, data_len);
-  receivedMessage[data_len] = '\0';
-  Serial.printf("Received message: %s\n", receivedMessage);
+    if (data_len <= 0) {
+        Serial.println("Warning: Received empty message.");
+        return;
+    }
+
+    char receivedMessage[data_len + 1];
+    memcpy(receivedMessage, data, data_len);
+    receivedMessage[data_len] = '\0';
+
+    Serial.printf("Received message: %s\n", receivedMessage);
+
+    recievedWord = String(receivedMessage);
+    newWordReceived = true;
 }

@@ -6,6 +6,9 @@
 #include <Arduino.h>
 
 extern esp_now_peer_info_t client;
+extern bool newWordReceived;
+extern String recievedWord;
+extern int topicIndex;
 
 void InitESPNow();
 void initBroadcastClients();
