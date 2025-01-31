@@ -1,55 +1,82 @@
 #include "ConfigUtils.h"
-#include <LittleFS.h>
-#include <ArduinoJson.h>
 
-// Constructor implementation
-ConfigUtils::ConfigUtils() : is_ap(1), topic("closed"), ssid("set_ssid_in_config_json"), channel(1) {}
+ConfigUtils::ConfigUtils() : loaded(false) {}
 
-// Method to load configuration from file
-void ConfigUtils::load() {
+// Load config from file
+bool ConfigUtils::load() {
     File configFile = LittleFS.open("/config.json", "r");
     if (!configFile) {
-        Serial.println("Failed to open config file");
-        return;
+        Serial.println("ERROR: Failed to open config file.");
+        return false;
     }
 
-    StaticJsonDocument<256> doc;
     DeserializationError error = deserializeJson(doc, configFile);
-    if (error) {
-        Serial.println("Failed to parse config file");
-        configFile.close();
-        return;
-    }
-
-    is_ap = doc["is_ap"] | 1;
-    topic = doc["topic"] | "closed";
-    ssid = doc["ssid"] | "set_ssid_in_config_json";
-    channel = doc["channel"] | 1;
     configFile.close();
 
-    Serial.println("Config loaded:");
-    serializeJson(doc, Serial);
-    Serial.println();
-}
-
-// Method to save configuration to file
-void ConfigUtils::save() {
-    File configFile = LittleFS.open("/config.json", "w");
-    if (!configFile) {
-        Serial.println("Failed to open config file for writing");
-        return;
+    if (error) {
+        Serial.print("ERROR: Failed to parse config file: ");
+        Serial.println(error.c_str());
+        return false;
     }
 
-    StaticJsonDocument<256> doc;
-    doc["is_ap"] = is_ap;
-    doc["topic"] = topic;
-    doc["ssid"] = ssid;
-    doc["channel"] = channel;
+    loaded = true;
+    return true;
+}
+
+// Save config to file
+bool ConfigUtils::save() {
+    if (!loaded) {
+        Serial.println("ERROR: Cannot save config before loading.");
+        return false;
+    }
+
+    File configFile = LittleFS.open("/config.json", "w");
+    if (!configFile) {
+        Serial.println("ERROR: Failed to open config file for writing.");
+        return false;
+    }
 
     serializeJson(doc, configFile);
     configFile.close();
+    return true;
+}
 
-    Serial.println("Config saved:");
-    serializeJson(doc, Serial);
-    Serial.println();
+// Get an integer value, fail if missing
+int ConfigUtils::getInt(const char* key) {
+    if (!doc.containsKey(key)) {
+        Serial.print("ERROR: Missing integer key: ");
+        Serial.println(key);
+        return -1;  // Return -1 or handle error differently
+    }
+    return doc[key].as<int>();
+}
+
+// Get a string value, fail if missing
+String ConfigUtils::getString(const char* key) {
+    if (!doc.containsKey(key)) {
+        Serial.print("ERROR: Missing string key: ");
+        Serial.println(key);
+        return "";
+    }
+    return String(doc[key].as<const char*>());
+}
+
+// Get an array, fail if missing
+JsonArray ConfigUtils::getArray(const char* key) {
+    if (!doc.containsKey(key)) {
+        Serial.print("ERROR: Missing array key: ");
+        Serial.println(key);
+        return JsonArray();
+    }
+    return doc[key].as<JsonArray>();
+}
+
+// Set integer value
+void ConfigUtils::set(const char* key, int value) {
+    doc[key] = value;
+}
+
+// Set string value
+void ConfigUtils::set(const char* key, const String& value) {
+    doc[key] = value;
 }

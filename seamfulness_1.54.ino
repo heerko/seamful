@@ -39,6 +39,10 @@ const char localIPURL[] = "http://4.3.2.1";
 const int WIFI_CHANNEL = 1;
 
 ConfigUtils config;
+int is_ap = 0;
+String ssid = "unset";
+int WIFI_CHANNEL = 1;
+int topicIndex = 0;
 
 
 void setDisplayText(String header, String text) {
@@ -152,12 +156,39 @@ void showQRCode() {
   display.display();
 }
 
+void loadConfig() {
+    if (!config.load()) {
+        Serial.println("ERROR: Config failed to load. Halting...");
+        while (true);  // Stop execution if config is invalid
+    }
+
+    is_ap = config.getInt("is_ap");
+    ssid = config.getString("ssid");
+    WIFI_CHANNEL = config.getInt("channel");
+    topicIndex = config.getInt("topic");
+
+    JsonArray topics = config.getArray("topics");
+    if (topics.size() == 0 || topicIndex < 0 || topicIndex >= (int)topics.size()) {
+        Serial.println("ERROR: Invalid topic index or missing topics array.");
+        while (true);  // Halt system
+    }
+
+    String topic = topics[topicIndex].as<String>();
+
+    Serial.println("Configuration Loaded:");
+    Serial.print("is_ap: "); Serial.println(is_ap);
+    Serial.print("SSID: "); Serial.println(ssid);
+    Serial.print("Channel: "); Serial.println(WIFI_CHANNEL);
+    Serial.print("Topic: "); Serial.println(topic);
+}
+
 void setup() {
   Serial.begin(115200);
   if (!initFileSystem()) {
     return;
   }
   listFiles();
+  loadConfig();
 
   display.init(115200);
   display.setRotation(1);
