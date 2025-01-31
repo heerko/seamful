@@ -1,76 +1,81 @@
 <!DOCTYPE html>
 <html lang="en">
-  <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Seamfulness</title>
-    <style>
-      @font-face {
-        font-family: "adelphe";
-        src: url("Adelphe-FlorealRegular.woff2") format("woff2");
-      }
 
-      @font-face {
-        font-family: 'dindong';
-        src: url("DINdong.woff2") format("woff2");
-        font-display: swap;
-      }
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Seamfulness</title>
+  <style>
+    @font-face {
+      font-family: "adelphe";
+      src: url("Adelphe-FlorealRegular.woff2") format("woff2");
+    }
 
-      html {
-        font-family: "Adelphe";
-      }
+    @font-face {
+      font-family: 'dindong';
+      src: url("DINdong.woff2") format("woff2");
+      font-display: swap;
+    }
 
-      body {
-        background-color: yellow;
-        text-align: center;
-      }
+    html {
+      font-family: "Adelphe";
+    }
 
-      h1 {
-        font-family: "dindong";
-        font-weight: normal;
-      }
+    body {
+      background-color: yellow;
+      text-align: center;
+    }
 
-      .question {
-        font-family: "dindong";
-        font-size: 2rem;
-        font-weight: normal;
-        padding: 1rem;
-        text-align: center;
-      }
+    h1 {
+      font-family: "dindong";
+      font-weight: normal;
+    }
 
-      .disclaimer {
-        margin: 1rem;;
-      }
+    .question {
+      font-family: "dindong";
+      font-size: 2rem;
+      font-weight: normal;
+      padding: 1rem;
+      text-align: center;
+    }
 
-      .feedback {
-        color: red;
-        display: block;
-      }
-    </style>
-  </head>
-  <body>
-    <select>
-      <option value="closed">Closed</option>
-      <option value="open">Open</option>
-      <option value="alt">Alt</option>
-    </select>
-    <h1>Loading</h1>
-    <div class="context"></div>
-    <div class="question"></div>
-    <form id="displayForm">
-      <label for="text">Type your answer (1 word):</label><br>
-      <input type="text" id="text" name="text" required maxlength="20"><br><br>
-      <input type="hidden" id="question_text" name="question_text">
-      <button type="submit">Send</button>
-      <span class="feedback"></span>
-    </form>
+    .disclaimer {
+      margin: 1rem;
+      ;
+    }
 
-    <div class="disclaimer">Disclaimer: Your answer will be displayed on the screen in the patchwork.</div>
-    <p id="response"></p>
+    .feedback {
+      color: red;
+      display: block;
+    }
+  </style>
+</head>
 
-    <script>
+<body>
+  <select style="xdisplay:none;">
+    <option value="closed">Closed</option>
+    <option value="open">Open</option>
+    <option value="alt">Alt</option>
+  </select>
+  <h1>Loading</h1>
+  <div class="context"></div>
+  <div class="question"></div>
+  <form id="displayForm">
+    <label for="text">Type your answer (max 100 chars):</label><br>
+    <input type="text" id="text" name="text" required maxlength="100"><br><br>
+    <button type="submit">Send</button>
+    <span class="feedback"></span>
+  </form>
+
+  <div class="disclaimer">Disclaimer: Your answer will be displayed on the
+    screen in the patchwork.</div>
+  <p id="response"></p>
+
+  <script>
+
     const form = document.getElementById('displayForm');
     const responseElement = document.getElementById('response');
+
 
     form.addEventListener('submit', async (event) => {
       event.preventDefault();
@@ -80,22 +85,23 @@
       const feedbackEl = document.querySelector(".feedback");
       feedbackEl.textContent = "";
       responseElement.textContent = "";
-      
-      if(text.split(" ").length > 1) {
-        feedbackEl.innerHTML = "Please answer in a single word.";
-        return;
-      }
+
+      // if (text.split(" ").length > 1) {
+      //   feedbackEl.innerHTML = "Please answer in a single word.";
+      //   return;
+      // }
 
       try {
         const response = await fetch('/update-display', {
           method: 'POST',
           headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-          body: `text=${encodeURIComponent(text)}&question=${encodeURIComponent(question)}`
+          body: `text=${encodeURIComponent(text)}`
         });
 
         if (response.ok) {
           const responseText = await response.text();
-          responseElement.textContent = "Send!";
+          responseElement.textContent = "Sent!";
+          document.getElementById("text").value = "";
         } else {
           responseElement.textContent = `Error: ${response.status} ${response.statusText}`;
         }
@@ -103,29 +109,28 @@
         responseElement.textContent = `Request failed: ${error}`;
       }
     });
-  </script>
-    <script>
-    let sections = {
-      "closed": ["Closed Source – Opaque Systems", "Closed-source tools often present a polished exterior but keep their inner workings hidden. They prioritize seamlessness, but at what cost? Consider the unseen limitations, frustrations, and dependencies created by these systems. Reflect on how much control and understanding you truly have over the tools you rely on."],
-      "open": ["Open Source – Collaborative Tools", "Open-source tools invite you to engage with their inner workings. They are shaped by communities, shared knowledge, and adaptability. These tools provide opportunities for customization and empowerment but also require effort and understanding. Think about what openness means to you and how it influences creativity and agency in your work."],
-      "alt": ["Alternatives and Reflection – Reimagining Tools", "Imagine design tools unconstrained by corporate interests or predetermined workflows. What if you could shape your tools to meet your creative needs rather than adapting yourself to them? Reflect on what your ideal design environment would look like, how it would work, and what it could unlock in your creative practice."],
-    };
-    let questions = {
-      "closed" : [
+
+    let topics = [
+      ["Closed Source – Opaque Systems", "Closed-source tools often present a polished exterior but keep their inner workings hidden. They prioritize seamlessness, but at what cost? Consider the unseen limitations, frustrations, and dependencies created by these systems. Reflect on how much control and understanding you truly have over the tools you rely on."],
+      ["Open Source – Collaborative Tools", "Open-source tools invite you to engage with their inner workings. They are shaped by communities, shared knowledge, and adaptability. These tools provide opportunities for customization and empowerment but also require effort and understanding. Think about what openness means to you and how it influences creativity and agency in your work."],
+      ["Network Imaginaries – Reimagining Tools", "Imagine design tools unconstrained by corporate interests or predetermined workflows. What if you could shape your tools to meet your creative needs rather than adapting yourself to them? Reflect on what your ideal design environment would look like, how it would work, and what it could unlock in your creative practice."],
+    ];
+    let questions = [
+      [
         "What limits you?",
         "What frustrates you?",
         "What’s hidden?",
         "Who owns it?",
         "What’s missing?",
       ],
-      "open" : [
+      [
         "What’s freedom?",
         "What’s flexible?",
         "What empowers?",
         "What’s shared?",
         "What’s customizable?",
       ],
-      "alt": [
+      [
         "What’s ideal?",
         "What’s broken?",
         "What’s inspiring?",
@@ -134,52 +139,79 @@
         "What’s necessary?",
         "What’s next?",
       ],
-    };
-  
+    ];
 
-    let section = "closed";
-    
+
     let titelEl = document.querySelector("h1");
     let contextEl = document.getElementsByClassName("context")[0];
     let questionEl = document.getElementsByClassName("question")[0];
-    let questionFormEl = document.getElementById('question_text');
     // for testing:
     let sel = document.querySelector('select');
     let currentQuestion = 0;
     let questionsInterval;
+    let topicIdx = 0;
 
-    // wait for page load
-    window.addEventListener('load', () => {
-      // update after page load to be sure
-      titelEl = document.querySelector("h1");
-      contextEl = document.getElementsByClassName("context")[0];
-      questionEl = document.getElementsByClassName("question")[0];
 
-      sel = document.querySelector('select');
-      // updateWindow();
-      questionsInterval = setInterval(updateWindow, 1000);
-    });
 
     function updateWindow() {
-      let title = sections[section][0];
-      let context = sections[section][1];
-      questionFormEl.value = section;
-      // let rndQuestionIndex = Math.floor(Math.random() * questions[section].length);
-      // let question = questions[section][rndQuestionIndex];
+      let title = topics[topicIdx][0];
+      let context = topics[topicIdx][1];
       currentQuestion++;
-      if(currentQuestion >= questions[section].length) currentQuestion = 0;
-      let question = questions[section][currentQuestion];
+
+      if (currentQuestion >= questions[topicIdx].length) currentQuestion = 0;
+      let question = questions[topicIdx][currentQuestion];
 
       titelEl.innerText = title;
       contextEl.innerText = context;
       questionEl.innerText = question;
     }
 
-    sel.addEventListener('change', (e) => {
-      section = sel.value;
-      currentQuestion = 0;
+    window.addEventListener('load', () => {
+      // update after page load to be sure
+      titelEl = document.querySelector("h1");
+      contextEl = document.getElementsByClassName("context")[0];
+      questionEl = document.getElementsByClassName("question")[0];
+      sel = document.querySelector('select');
+      loadTopicIdx();
+    });
+
+    async function loadTopicIdx() {
+      try {
+        let response = await fetch(window.location.href, { method: 'HEAD' });
+        let topicIdx = response.headers.get("X-Topic-Index");
+
+        console.log("Topic Index:", topicIdx);
+
+        // Continue with the rest of your script here
+        initApp(topicIdx);
+      } catch (error) {
+        console.error("Error fetching topicIdx:", error);
+        initApp(0);
+      }
+    }
+
+    function updateSelect() {
+      sel.selectedIndex = topicIdx;
+    }
+
+    function initApp(idx) {
+
+      const params = new URLSearchParams(window.location.search);
+      topicIdx = idx;// parseInt(params.get('topic')) || 0; // get the topic index from url
+      questionsInterval = setInterval(updateWindow, 1000);
+      updateSelect();
       updateWindow();
-    } );
+
+      sel.addEventListener('change', (e) => {
+        topicIdx = sel.selectedIndex;
+        section = sel.value;
+        currentQuestion = 0;
+        updateWindow();
+      });
+
+    }
+
   </script>
-  </body>
+</body>
+
 </html>
