@@ -15,7 +15,8 @@ extern const IPAddress localIP;
 extern const IPAddress gatewayIP;
 extern const IPAddress subnetMask;
 extern const char localIPURL[];
-extern const int WIFI_CHANNEL;
+extern int WIFI_CHANNEL;
+extern int topicIndex;
 
 // Functies voor bestandshandeling
 void listFiles();

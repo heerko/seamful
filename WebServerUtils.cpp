@@ -1,121 +1,144 @@
 #include "WebServerUtils.h"
 
 void getSSIDFromFS() {
-    File root = LittleFS.open("/");
-    File file = root.openNextFile();
-    while (file) {
-        String n = file.name();
-        int dot = n.lastIndexOf(".");
-        String ext = n.substring(dot);
-        if (ext == ".ssid") {
-            String hostName;
-            if (n.substring(0, 1) == "/") {
-                hostName = n.substring(1, dot);
-            } else {
-                hostName = n.substring(0, dot);
-            }
-            hostName.toCharArray(g_ssid, sizeof(g_ssid));
-            break;
-        }
-        file = root.openNextFile();
+  File root = LittleFS.open("/");
+  File file = root.openNextFile();
+  while (file) {
+    String n = file.name();
+    int dot = n.lastIndexOf(".");
+    String ext = n.substring(dot);
+    if (ext == ".ssid") {
+      String hostName;
+      if (n.substring(0, 1) == "/") {
+        hostName = n.substring(1, dot);
+      } else {
+        hostName = n.substring(0, dot);
+      }
+      hostName.toCharArray(g_ssid, sizeof(g_ssid));
+      break;
     }
-    root.close();
+    file = root.openNextFile();
+  }
+  root.close();
 }
 
 // Functies voor netwerk en serverinstellingen
 void setUpDNSServer(DNSServer &dnsServer, const IPAddress &localIP) {
-    dnsServer.setTTL(3600);
-    dnsServer.start(53, "*", localIP);
+  dnsServer.setTTL(3600);
+  dnsServer.start(53, "*", localIP);
 }
 
 void startSoftAccessPoint(const char *ssid, const char *password, const IPAddress &localIP, const IPAddress &gatewayIP) {
-    // WiFi.mode(WIFI_MODE_AP);
-    WiFi.mode(WIFI_AP_STA); // Enable both AP and STA modes for ESP-NOW
-    WiFi.softAPConfig(localIP, gatewayIP, subnetMask);
-    if (WiFi.softAP(ssid, password, WIFI_CHANNEL)) {
-        Serial.println("Access Point started successfully");
-        Serial.print("AP IP address: ");
-        Serial.println(WiFi.softAPIP());
-    } else {
-       Serial.println("Failed to start Access Point");
-    }
+  // WiFi.mode(WIFI_MODE_AP);
+  WiFi.mode(WIFI_AP_STA);  // Enable both AP and STA modes for ESP-NOW
+  WiFi.softAPConfig(localIP, gatewayIP, subnetMask);
+  if (WiFi.softAP(ssid, password, WIFI_CHANNEL)) {
+    Serial.println("Access Point started successfully");
+    Serial.print("AP IP address: ");
+    Serial.println(WiFi.softAPIP());
+  } else {
+    Serial.println("Failed to start Access Point");
+  }
 }
 
 void setUpWebserver(AsyncWebServer &server, const IPAddress &localIP) {
-    // Basisroute voor statische bestanden
-    server.serveStatic("/", LittleFS, "/").setDefaultFile("index.html");
+  // Serve static files and ensure "/" loads index.html for captive portal
+  server.serveStatic("/", LittleFS, "/").setDefaultFile("index.html");
 
-    // Routes specifiek voor netwerkconnectiviteit
-    server.on("/connecttest.txt", [](AsyncWebServerRequest *request) {
-        request->redirect("http://logout.net");
-    });
+  // Override handling for /index.html to add topic parameter if missing
+  server.on("/index.html", HTTP_GET, [](AsyncWebServerRequest *request) {
+    Serial.println("Request for /index.html");
+    if (!request->hasParam("topic")) {
+      Serial.print("Redirecting to /index.html?topic=");
+      Serial.println(topicIndex);
+      request->redirect("/index.html?topic=" + String(topicIndex));
+    } else {
+      Serial.println("Serving index.html with existing topic param");
+      request->send(LittleFS, "/index.html", "text/html");
+    }
+  });
 
-    server.on("/wpad.dat", [](AsyncWebServerRequest *request) {
-        request->send(404);
-    });
+  // Handle the root "/" explicitly to ensure captive portal opens
+  server.on("/", HTTP_GET, [](AsyncWebServerRequest *request) {
+    Serial.println("Request for / -> Redirecting to /index.html");
+    request->redirect("/index.html");
+  });
 
-    server.on("/generate_204", [](AsyncWebServerRequest *request) {
-        request->redirect(localIPURL);
-    });
 
-    server.on("/redirect", [](AsyncWebServerRequest *request) {
-        request->redirect(localIPURL);
-    });
+  // Routes specifiek voor netwerkconnectiviteit
+  server.on("/connecttest.txt", [](AsyncWebServerRequest *request) {
+    request->redirect("http://logout.net");
+  });
 
-    server.on("/hotspot-detect.html", [](AsyncWebServerRequest *request) {
-        request->redirect(localIPURL);
-    });
+  server.on("/wpad.dat", [](AsyncWebServerRequest *request) {
+    request->send(404);
+  });
 
-    server.on("/canonical.html", [](AsyncWebServerRequest *request) {
-        request->redirect(localIPURL);
-    });
+  server.on("/generate_204", [](AsyncWebServerRequest *request) {
+    request->redirect(localIPURL);
+  });
 
-    server.on("/success.txt", [](AsyncWebServerRequest *request) {
-        request->send(200);
-    });
+  server.on("/redirect", [](AsyncWebServerRequest *request) {
+    request->redirect(localIPURL);
+  });
 
-    server.on("/ncsi.txt", [](AsyncWebServerRequest *request) {
-        request->redirect(localIPURL);
-    });
+  server.on("/hotspot-detect.html", [](AsyncWebServerRequest *request) {
+    request->redirect(localIPURL);
+  });
 
-    // Favicon niet gevonden
-    server.on("/favicon.ico", [](AsyncWebServerRequest *request) {
-        request->send(404);
-    });
+  server.on("/canonical.html", [](AsyncWebServerRequest *request) {
+    request->redirect(localIPURL);
+  });
 
-    // Fallback voor niet-gevonden routes
-    server.onNotFound([](AsyncWebServerRequest *request) {
-        if (LittleFS.exists(request->url())) {
-            request->send(LittleFS, request->url(), String(), false);
-            Serial.print("Served from LittleFS: " ); + 
-            Serial.println(request->url());
-        } else {
-            request->redirect(localIPURL);
-            Serial.print("onNotFound: ");
-            Serial.println(request->url());
-        }
-    });
+  server.on("/success.txt", [](AsyncWebServerRequest *request) {
+    request->send(200);
+  });
 
-    // WebSocket handler
-    ws.onEvent(onEvent);
-    server.addHandler(&ws);
+  server.on("/ncsi.txt", [](AsyncWebServerRequest *request) {
+    request->redirect(localIPURL);
+  });
 
-    server.begin();
+  // Favicon niet gevonden
+  server.on("/favicon.ico", [](AsyncWebServerRequest *request) {
+    request->send(404);
+  });
+
+  // Fallback voor niet-gevonden routes
+  server.onNotFound([](AsyncWebServerRequest *request) {
+    if (LittleFS.exists(request->url())) {
+      AsyncWebServerResponse *response = request->beginResponse(LittleFS, request->url(), String(), false);
+      response->addHeader("X-Topic-Index", String(topicIndex));  // Attach topicIdx to all file responses
+      request->send(response);
+      // request->send(LittleFS, request->url(), String(), false);
+      Serial.print("Served from LittleFS: ");
+      Serial.println(request->url());
+    } else {
+      request->redirect(localIPURL);
+      Serial.print("onNotFound: ");
+      Serial.println(request->url());
+    }
+  });
+
+  // WebSocket handler
+  ws.onEvent(onEvent);
+  server.addHandler(&ws);
+
+  server.begin();
 }
 
 // Functies voor WebSocket
 void handleWebSocketMessage(void *arg, uint8_t *data, size_t len) {
-    AwsFrameInfo *info = (AwsFrameInfo *)arg;
-    if (info->opcode == WS_TEXT) {
-        data[len] = 0; // Zorg dat het een null-terminated string is
-        if (strcmp((char *)data, "ping") == 0) {
-            ws.textAll("pong");
-        }
+  AwsFrameInfo *info = (AwsFrameInfo *)arg;
+  if (info->opcode == WS_TEXT) {
+    data[len] = 0;  // Zorg dat het een null-terminated string is
+    if (strcmp((char *)data, "ping") == 0) {
+      ws.textAll("pong");
     }
+  }
 }
 
 void onEvent(AsyncWebSocket *server, AsyncWebSocketClient *client, AwsEventType type, void *arg, uint8_t *data, size_t len) {
-    if (type == WS_EVT_DATA) {
-        handleWebSocketMessage(arg, data, len);
-    }
+  if (type == WS_EVT_DATA) {
+    handleWebSocketMessage(arg, data, len);
+  }
 }
