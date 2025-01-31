@@ -9,42 +9,46 @@ bool initFileSystem() {
 }
 
 void saveMessageToFile(const String &message) {
-  if (!LittleFS.exists("/message.txt")) {
-    File file = LittleFS.open("/message.txt", "w");
+  if (!LittleFS.exists("/messages.txt")) {
+    File file = LittleFS.open("/messages.txt", "w");
     if (!file) {
-      Serial.println("Failed to create message.txt for writing");
+      Serial.println("Failed to create messages.txt for writing");
       return;
     }
     file.close();
   }
 
-  File file = LittleFS.open("/message.txt", "a");
+  File file = LittleFS.open("/messages.txt", "a");
   if (file) {
     file.println(message);
     file.close();
   } else {
-    Serial.println("Failed to open message.txt for appending");
+    Serial.println("Failed to open messages.txt for appending");
   }
 }
-
-String getMessagesFromFile() {
-  String response = "Messages:\n";
-
-  if (LittleFS.exists("/message.txt")) {
-    File file = LittleFS.open("/message.txt", "r");
-    if (file) {
-      while (file.available()) {
-        response += file.readStringUntil('\n') + "\n";
-      }
-      file.close();
-    } else {
-      Serial.println("Failed to open message.txt for reading");
-    }
-  } else {
-    response += "No messages found.\n";
+std::vector<String> getMessagesFromFile() {
+  File file = LittleFS.open("/messages.txt", "r");
+  if (!file) {
+    Serial.println("Failed to open messages.txt");
+    return {};
   }
 
-  return response;
+  std::vector<String> words;
+  while (file.available()) {
+    words.push_back(file.readStringUntil('\n'));
+  }
+  file.close();
+
+  return words;
+}
+
+void printAllMessages() {
+  std::vector<String> words = getMessagesFromFile();
+  if (!words.empty()) {
+    for (int i = 0; i < words.size(); i++) {
+      Serial.println(words[i]);
+    }
+  }
 }
 
 void listFiles() {
