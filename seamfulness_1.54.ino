@@ -7,7 +7,7 @@
 #include <ArduinoJson.h>
 #include <QRCodeGenerator.h>
 
-// parts.
+// utils.
 #include "WebServerUtils.h"
 #include "FileSystemUtils.h"
 #include "ESPNowUtils.h"
@@ -36,9 +36,15 @@ const IPAddress gatewayIP(4, 3, 2, 1);
 const IPAddress subnetMask(255, 255, 255, 0);
 const char localIPURL[] = "http://4.3.2.1";
 
-const int WIFI_CHANNEL = 1;
-
 ConfigUtils config;
+
+unsigned long nextWordTime = 0;
+const unsigned long minInterval = 10000;  // min interval in ms
+const unsigned long maxInterval = 20000;  // max interval in ms
+String lastDisplayedWord = "";
+bool newWordReceived = false;
+String recievedWord = "";
+
 int is_ap = 0;
 String ssid = "unset";
 int WIFI_CHANNEL = 1;
@@ -48,29 +54,14 @@ int topicIndex = 0;
 void setDisplayText(String header, String text) {
   display.setFullWindow();
   display.setTextColor(GxEPD_BLACK);
+  int16_t tbx, tby;
+  uint16_t tbw, tbh;
+  display.getTextBounds(text, 0, 0, &tbx, &tby, &tbw, &tbh);
+  uint16_t x = ((display.width() - tbw) / 2) - tbx;
+  uint16_t y = ((display.height() - tbh) / 2) - tby;
   display.firstPage();
-
-  int x = 0;
-  int y = 30;
-
   do {
     display.fillScreen(GxEPD_WHITE);
-
-    // Print header
-    display.setFont(&FreeMonoBold9pt7b);
-    display.setCursor(x, y);
-    display.print(header);
-
-    // Get height of header text
-    int16_t tbx, tby;
-    uint16_t tbw, tbh;
-    display.getTextBounds(header, x, y, &tbx, &tby, &tbw, &tbh);
-
-    // Move down by text height + padding
-    y += tbh + 10;
-
-    // Print body text
-    display.setFont(&FreeSerif18pt7b);
     display.setCursor(x, y);
     display.print(text);
   } while (display.nextPage());
@@ -93,8 +84,8 @@ void handleMessageEndpoint(AsyncWebServerRequest *request) {
 }
 
 void handleMessagesTxtEndpoint(AsyncWebServerRequest *request) {
-  if (LittleFS.exists("/message.txt")) {
-    request->send(LittleFS, "/message.txt", "text/plain");
+  if (LittleFS.exists("/messages.txt")) {
+    request->send(LittleFS, "/messages.txt", "text/plain");
   } else {
     request->send(404, "text/plain", "File not found.");
   }
@@ -117,7 +108,7 @@ void handleUpdateDisplayEndpoint(AsyncWebServerRequest *request) {
 }
 
 void customEndPoints() {
-  server.on("/message", HTTP_POST, handleMessageEndpoint);
+  server.on("/message", HTTP_POST, handleMessageEndpoint);  // currently unused?
   server.on("/messages.txt", HTTP_GET, handleMessagesTxtEndpoint);
   server.on("/update-display", HTTP_POST, handleUpdateDisplayEndpoint);
 }
@@ -147,7 +138,7 @@ void showQRCode() {
   int bufferSize = qrcode_getBufferSize(3);
   uint8_t *qrcodeData = (uint8_t *)malloc(bufferSize);  // Dynamically allocate memory
 
-  String wifiData = "WIFI:S:" + config.ssid + ";T:nopass;;";
+  String wifiData = "WIFI:S:" + ssid + ";T:nopass;;";
   qrcode_initText(&qrcode, qrcodeData, 3, ECC_LOW, wifiData.c_str());
 
   display.fillScreen(GxEPD_WHITE);
@@ -156,30 +147,68 @@ void showQRCode() {
   display.display();
 }
 
+void helloWorld() {
+  display.setFullWindow();
+  display.setTextColor(GxEPD_BLACK);
+  int16_t tbx, tby;
+  uint16_t tbw, tbh;
+  display.getTextBounds("Hello World!", 0, 0, &tbx, &tby, &tbw, &tbh);
+  uint16_t x = ((display.width() - tbw) / 2) - tbx;
+  uint16_t y = ((display.height() - tbh) / 2) - tby;
+  display.firstPage();
+  do {
+    display.fillScreen(GxEPD_WHITE);
+    display.setCursor(x, y);
+    display.print("Hello World!");
+  } while (display.nextPage());
+}
+
+void displayRandomWord() {
+  std::vector<String> words = getMessagesFromFile();
+
+  if (!words.empty()) {
+    String word = words[random(words.size())];  // Pick a random word
+    Serial.println("Picked word: " + word);
+    if (word != lastDisplayedWord) {
+      setDisplayText("", word);
+      lastDisplayedWord = word;
+    }
+  }
+
+  nextWordTime = millis() + random(minInterval, maxInterval);  // Schedule next display
+}
+
 void loadConfig() {
-    if (!config.load()) {
-        Serial.println("ERROR: Config failed to load. Halting...");
-        while (true);  // Stop execution if config is invalid
-    }
+  if (!config.load()) {
+    Serial.println("ERROR: Config failed to load. Halting...");
+    while (true)
+      ;  // Stop execution if config is invalid
+  }
 
-    is_ap = config.getInt("is_ap");
-    ssid = config.getString("ssid");
-    WIFI_CHANNEL = config.getInt("channel");
-    topicIndex = config.getInt("topic");
+  is_ap = config.getInt("is_ap");
+  WIFI_CHANNEL = config.getInt("channel");
+  topicIndex = config.getInt("topic");
 
-    JsonArray topics = config.getArray("topics");
-    if (topics.size() == 0 || topicIndex < 0 || topicIndex >= (int)topics.size()) {
-        Serial.println("ERROR: Invalid topic index or missing topics array.");
-        while (true);  // Halt system
-    }
+  JsonArray topics = config.getArray("topics");
+  if (topics.size() == 0 || topicIndex < 0 || topicIndex >= (int)topics.size()) {
+    Serial.println("ERROR: Invalid topic index or missing topics array.");
+    while (true)
+      ;  // Halt system
+  }
 
-    String topic = topics[topicIndex].as<String>();
+  String topic = topics[topicIndex].as<String>();
 
-    Serial.println("Configuration Loaded:");
-    Serial.print("is_ap: "); Serial.println(is_ap);
-    Serial.print("SSID: "); Serial.println(ssid);
-    Serial.print("Channel: "); Serial.println(WIFI_CHANNEL);
-    Serial.print("Topic: "); Serial.println(topic);
+  ssid = String(topic);
+
+  Serial.println("Configuration Loaded:");
+  Serial.print("is_ap: ");
+  Serial.println(is_ap);
+  Serial.print("SSID: ");
+  Serial.println(ssid);
+  Serial.print("Channel: ");
+  Serial.println(WIFI_CHANNEL);
+  Serial.print("Topic: ");
+  Serial.println(topic);
 }
 
 void setup() {
@@ -194,11 +223,10 @@ void setup() {
   display.setRotation(1);
   display.setFont(&FreeMonoBold9pt7b);
 
-  config.load();  // Load configuration
-  strncpy(g_ssid, config.ssid.c_str(), sizeof(g_ssid) - 1);
+  strncpy(g_ssid, ssid.c_str(), sizeof(g_ssid) - 1);
   g_ssid[sizeof(g_ssid) - 1] = '\0';
 
-  if (config.is_ap == 1) {
+  if (is_ap == 1) {
     startSoftAccessPoint(g_ssid, NULL, localIP, gatewayIP);
   } else {
     Serial.println("Starting WiFi in STA Mode");
@@ -215,12 +243,48 @@ void setup() {
   esp_now_register_send_cb(OnDataSent);
   esp_now_register_recv_cb(OnDataRecv);
   initBroadcastClients();
-  if (config.is_ap == 1) {
+  if (is_ap == 1) {
     showQRCode();
+    nextWordTime = millis() + maxInterval;
+  } else {
+    nextWordTime = millis();  // Start right away
   }
+
+  pinMode(39, INPUT_PULLUP);
+  if (digitalRead(39) == LOW) {  // hold btn during boot to see all stored messages
+    printAllMessages();
+  }
+}
+
+String parseAndStoreRecievedWord(String recievedWord) {
+  int topic = 0;
+  String text = "";
+  if (recievedWord.length() > 2 && recievedWord[1] == '|') {
+    topic = recievedWord.substring(0, 1).toInt();
+    text = recievedWord.substring(2);
+  } else { 
+    topic = 0;
+    text = recievedWord;
+  }
+  if(topic == topicIndex && !is_ap) {
+    // store the text 
+    Serial.print("saving recieved text: ");
+    Serial.println(text);
+    saveMessageToFile(text);
+  }
+  return text;
 }
 
 void loop() {
   dnsServer.processNextRequest();
   ws.cleanupClients();
+
+  if (newWordReceived) {
+    newWordReceived = false;
+    nextWordTime = millis() + random(minInterval, maxInterval);
+    String word = parseAndStoreRecievedWord(recievedWord);
+    setDisplayText("", word);
+  } else if (millis() >= nextWordTime) {
+    displayRandomWord();
+  }
 }

@@ -1,6 +1,10 @@
 {
-    "is_ap": 1,
-    "topic": "open",
-    "ssid": "seamful",
-    "channel" : 1
+    "is_ap": 0,
+    "channel" : 1,
+    "topic": 0,
+    "topics": [
+        "closed source",
+        "open source",
+        "network imaginaries"
+    ]
 }
