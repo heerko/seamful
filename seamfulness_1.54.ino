@@ -3,6 +3,8 @@
 #include <DNSServer.h>
 #include <GxEPD2_BW.h>
 #include <Fonts/FreeMonoBold9pt7b.h>
+#include <Fonts/FreeSans12pt7b.h>
+#include <Fonts/FreeSansBold12pt7b.h>
 #include <Fonts/FreeSerif18pt7b.h>
 #include <ArduinoJson.h>
 #include <QRCodeGenerator.h>
@@ -37,8 +39,8 @@ const char localIPURL[] = "http://4.3.2.1";
 ConfigUtils config;
 
 unsigned long nextWordTime = 0;
-const unsigned long minInterval = 10000;  // min interval in ms
-const unsigned long maxInterval = 20000;  // max interval in ms
+unsigned long minInterval = 1000;  // min interval in ms
+unsigned long maxInterval = 2000;  // max interval in ms
 String lastDisplayedWord = "";
 bool newWordReceived = false;
 String recievedWord = "";
@@ -227,6 +229,8 @@ void loadConfig() {
   is_ap = config.getInt("is_ap");
   WIFI_CHANNEL = config.getInt("channel");
   topicIndex = config.getInt("topic");
+  minInterval = config.getInt("minInterval");
+  maxInterval = config.getInt("maxInterval");
 
   JsonArray topics = config.getArray("topics");
   if (topics.size() == 0 || topicIndex < 0 || topicIndex >= (int)topics.size()) {
@@ -240,7 +244,7 @@ void loadConfig() {
   JsonArray ssids = config.getArray("ssids");
   if (ssids.size() == 0 || ssids.size() < topics.size()) {
     Serial.println("ERROR: Missing ssids array or size mismatch.");
-  ssid = String(topic);
+    ssid = String(topic);
   } else {
     ssid = ssids[topicIndex].as<String>();
   }
@@ -314,7 +318,7 @@ void loop() {
   } else if (millis() >= nextWordTime) {
     wordCounter++;
     if (wordCounter < 5) {
-    displayRandomWord();
+      displayRandomWord();
     } else {
       wordCounter = 0;
       nextWordTime = millis() + random(minInterval, maxInterval);  // Schedule next display
