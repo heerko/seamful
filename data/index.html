@@ -5,6 +5,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Seamfulness</title>
+  <script src="js/profanity-cleaner.min.js"></script>
   <style>
     @font-face {
       font-family: "adelphe";
@@ -52,7 +53,7 @@
 </head>
 
 <body>
-  <select style="xdisplay:none;">
+  <select style="display:none;">
     <option value="closed">Closed</option>
     <option value="open">Open</option>
     <option value="alt">Alt</option>
@@ -61,8 +62,8 @@
   <div class="context"></div>
   <div class="question"></div>
   <form id="displayForm">
-    <label for="text">Type your answer (max 100 chars):</label><br>
-    <input type="text" id="text" name="text" required maxlength="100"><br><br>
+    <label for="text">[ Share your thoughts here ] (max 90 chars):</label><br>
+    <input type="text" id="text" name="text" required maxlength="90"><br><br>
     <button type="submit">Send</button>
     <span class="feedback"></span>
   </form>
@@ -75,7 +76,6 @@
 
     const form = document.getElementById('displayForm');
     const responseElement = document.getElementById('response');
-
 
     form.addEventListener('submit', async (event) => {
       event.preventDefault();
@@ -90,12 +90,13 @@
       //   feedbackEl.innerHTML = "Please answer in a single word.";
       //   return;
       // }
-
+      const cleanedText = profanityCleaner.clean(text, { keepFirstAndLastChar: true });
+      
       try {
         const response = await fetch('/update-display', {
           method: 'POST',
           headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-          body: `text=${encodeURIComponent(text)}`
+          body: `text=${encodeURIComponent(cleanedText)}`
         });
 
         if (response.ok) {
@@ -111,9 +112,9 @@
     });
 
     let topics = [
-      ["Closed Source – Opaque Systems", "Closed-source tools often present a polished exterior but keep their inner workings hidden. They prioritize seamlessness, but at what cost? Consider the unseen limitations, frustrations, and dependencies created by these systems. Reflect on how much control and understanding you truly have over the tools you rely on."],
-      ["Open Source – Collaborative Tools", "Open-source tools invite you to engage with their inner workings. They are shaped by communities, shared knowledge, and adaptability. These tools provide opportunities for customization and empowerment but also require effort and understanding. Think about what openness means to you and how it influences creativity and agency in your work."],
-      ["Network Imaginaries – Reimagining Tools", "Imagine design tools unconstrained by corporate interests or predetermined workflows. What if you could shape your tools to meet your creative needs rather than adapting yourself to them? Reflect on what your ideal design environment would look like, how it would work, and what it could unlock in your creative practice."],
+      ["･ﾟﾟ･｡Smooth ride?*･｡･ﾟﾟ", "The effortless experience of using commercial design tools—also known as proprietary software or the Adobe octopus, the 'Swiss Army knife' of desktop publishing—comes at a price. hat seamless, intuitive workflow? It might be an illusion, a clever disguise hiding the software’s inner workings. What about the unseen restrictions? The quiet dependencies that tether you to specific tools? Ask yourself: How much control do you really have over the software shaping your work—and how deeply do you understand it and the outcomes it produces?"],
+      ["･:༅｡Bumpy adventures!｡༅:ﾟ", "Free/Libre open-source design tools may feel less intuitive than their commercial counterparts. They are \"open\" and free to use, but they also demand a certain level of openness and curiosity from the designer to navigate potential turbulences. Free/libre open-source design software allows for the tools themselves to be designed, studied, copied and manipulated. What does openness mean to you and how does it influence creativity and agency in your work?"],
+      ["･⋆.‧₊˚Collective tool ecologies˚⋆｡‧₊˚", "Commercial design tools assume linear and individualized design processes, increasing productivity through pre-programmed features that streamline tasks to be completed in an frictionless linear manner, one step at a time. Let's instead imagine design tools unconstrained and as part of networks of social and technical relationships. Let's challenge the prevailing “frictionless” design model, and shift the focus from productivity and “software as a service” to viewing free/libre open-source design as a joyful, “inefficient” process driven by collective exploration."],
     ];
     let questions = [
       [
