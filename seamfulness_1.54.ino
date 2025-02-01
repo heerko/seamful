@@ -48,22 +48,27 @@ String ssid = "unset";
 int WIFI_CHANNEL = 1;
 int topicIndex = 0;
 
-
-void setDisplayText(String header, String text) {
-  display.setFullWindow();
-  display.setTextColor(GxEPD_BLACK);
-  int16_t tbx, tby;
-  uint16_t tbw, tbh;
-  display.getTextBounds(text, 0, 0, &tbx, &tby, &tbw, &tbh);
-  uint16_t x = ((display.width() - tbw) / 2) - tbx;
-  uint16_t y = ((display.height() - tbh) / 2) - tby;
-  display.firstPage();
-  do {
-    display.fillScreen(GxEPD_WHITE);
-    display.setCursor(x, y);
-    display.print(text);
-  } while (display.nextPage());
+String parseAndStoreRecievedWord(String recievedWord) {
+  int topic = 0;
+  String text = "";
+  if (recievedWord.length() > 2 && recievedWord[1] == '|') {
+    topic = recievedWord.substring(0, 1).toInt();
+    text = recievedWord.substring(2);
+  } else {
+    topic = 0;
+    text = recievedWord;
+  }
+  if (topic == topicIndex && !is_ap) {
+    // store the text
+    Serial.print("saving recieved text: ");
+    Serial.println(text);
+    saveMessageToFile(text);
+  }
+  return text;
 }
+
+/** End points **/
+
 
 void handleMessageEndpoint(AsyncWebServerRequest *request) {
   String response = "ok";
@@ -111,6 +116,26 @@ void customEndPoints() {
   server.on("/update-display", HTTP_POST, handleUpdateDisplayEndpoint);
 }
 
+/** Drawing methods **/
+
+
+void setDisplayText(String header, String text) {
+  display.setFullWindow();
+  display.setTextColor(GxEPD_BLACK);
+  display.setFont(&FreeSans12pt7b);
+  int16_t tbx, tby;
+  uint16_t tbw, tbh;
+  display.getTextBounds(text, 0, 0, &tbx, &tby, &tbw, &tbh);
+  uint16_t x = ((display.width() - tbw) / 2) - tbx;  // maybe 0 for left align?
+  uint16_t y = ((display.height() - tbh) / 2) - tby;
+  display.firstPage();
+  do {
+    display.fillScreen(GxEPD_WHITE);
+    display.setCursor(x, y);
+    display.print(text);
+  } while (display.nextPage());
+}
+
 
 void drawQRCode(QRCode *qrcode) {
   int qrSize = qrcode->size;
@@ -145,21 +170,21 @@ void showQRCode() {
   display.display();
 }
 
-void helloWorld() {
-  display.setFullWindow();
-  display.setTextColor(GxEPD_BLACK);
-  int16_t tbx, tby;
-  uint16_t tbw, tbh;
-  display.getTextBounds("Hello World!", 0, 0, &tbx, &tby, &tbw, &tbh);
-  uint16_t x = ((display.width() - tbw) / 2) - tbx;
-  uint16_t y = ((display.height() - tbh) / 2) - tby;
-  display.firstPage();
-  do {
-    display.fillScreen(GxEPD_WHITE);
-    display.setCursor(x, y);
-    display.print("Hello World!");
-  } while (display.nextPage());
-}
+// void helloWorld() {
+//   display.setFullWindow();
+//   display.setTextColor(GxEPD_BLACK);
+//   int16_t tbx, tby;
+//   uint16_t tbw, tbh;
+//   display.getTextBounds("Hello World!", 0, 0, &tbx, &tby, &tbw, &tbh);
+//   uint16_t x = ((display.width() - tbw) / 2) - tbx;
+//   uint16_t y = ((display.height() - tbh) / 2) - tby;
+//   display.firstPage();
+//   do {
+//     display.fillScreen(GxEPD_WHITE);
+//     display.setCursor(x, y);
+//     display.print("Hello World!");
+//   } while (display.nextPage());
+// }
 
 void displayRandomWord() {
   std::vector<String> words = getMessagesFromFile();
@@ -275,24 +300,7 @@ void setup() {
   }
 }
 
-String parseAndStoreRecievedWord(String recievedWord) {
-  int topic = 0;
-  String text = "";
-  if (recievedWord.length() > 2 && recievedWord[1] == '|') {
-    topic = recievedWord.substring(0, 1).toInt();
-    text = recievedWord.substring(2);
-  } else { 
-    topic = 0;
-    text = recievedWord;
-  }
-  if(topic == topicIndex && !is_ap) {
-    // store the text 
-    Serial.print("saving recieved text: ");
-    Serial.println(text);
-    saveMessageToFile(text);
-  }
-  return text;
-}
+int wordCounter = 0;
 
 void loop() {
   dnsServer.processNextRequest();
@@ -304,6 +312,13 @@ void loop() {
     String word = parseAndStoreRecievedWord(recievedWord);
     setDisplayText("", word);
   } else if (millis() >= nextWordTime) {
+    wordCounter++;
+    if (wordCounter < 5) {
     displayRandomWord();
+    } else {
+      wordCounter = 0;
+      nextWordTime = millis() + random(minInterval, maxInterval);  // Schedule next display
+      showQRCode();
+    }
   }
 }
