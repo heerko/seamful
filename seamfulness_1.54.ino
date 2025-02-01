@@ -24,8 +24,6 @@ QRCode qrcode;
 uint8_t qrcodeData[128];  // Buffer for QR code data (adjust size based on version)
 
 
-char g_ssid[32] = "ESP_AP";  // set AP SSID. Can be overwritten by creating a file on LittleFS with extension .ssid
-
 // Do not touch the following variables
 AsyncWebServer server(80);
 AsyncWebSocket ws("/ws");
@@ -178,6 +176,22 @@ void displayRandomWord() {
   nextWordTime = millis() + random(minInterval, maxInterval);  // Schedule next display
 }
 
+/** Configuration **/
+
+void enforceSSIDLimit() {
+  /* 
+  WiFi.softAP truncates the ssid to 31 + \0 chars. 
+  Truncate here so we print the proper ssid
+  */
+  int byteCount = strlen(ssid.c_str());  // Get actual byte size
+
+  // Trim while the byte count is over 31
+  while (byteCount > 31) {
+    ssid.remove(ssid.length() - 1);    // Remove last character
+    byteCount = strlen(ssid.c_str());  // Recalculate size
+  }
+}
+
 void loadConfig() {
   if (!config.load()) {
     Serial.println("ERROR: Config failed to load. Halting...");
@@ -198,7 +212,15 @@ void loadConfig() {
 
   String topic = topics[topicIndex].as<String>();
 
+  JsonArray ssids = config.getArray("ssids");
+  if (ssids.size() == 0 || ssids.size() < topics.size()) {
+    Serial.println("ERROR: Missing ssids array or size mismatch.");
   ssid = String(topic);
+  } else {
+    ssid = ssids[topicIndex].as<String>();
+  }
+
+  enforceSSIDLimit();
 
   Serial.println("Configuration Loaded:");
   Serial.print("is_ap: ");
@@ -223,11 +245,8 @@ void setup() {
   display.setRotation(1);
   display.setFont(&FreeMonoBold9pt7b);
 
-  strncpy(g_ssid, ssid.c_str(), sizeof(g_ssid) - 1);
-  g_ssid[sizeof(g_ssid) - 1] = '\0';
-
   if (is_ap == 1) {
-    startSoftAccessPoint(g_ssid, NULL, localIP, gatewayIP);
+    startSoftAccessPoint(ssid.c_str(), NULL, localIP, gatewayIP);
   } else {
     Serial.println("Starting WiFi in STA Mode");
     WiFi.mode(WIFI_STA);
