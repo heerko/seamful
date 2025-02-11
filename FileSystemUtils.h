@@ -7,6 +7,8 @@
 bool initFileSystem();
 void saveMessageToFile(const String &message);
 std::vector<String> getMessagesFromFile();
+void trimOldMessages();
+String getRandomMessage();
 void printAllMessages();
 void listFiles();
 
