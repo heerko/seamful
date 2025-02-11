@@ -4,8 +4,9 @@
 #include <GxEPD2_BW.h>
 #include <Fonts/FreeMonoBold9pt7b.h>
 #include <Fonts/FreeSans12pt7b.h>
-#include <Fonts/FreeSansBold12pt7b.h>
-#include <Fonts/FreeSerif18pt7b.h>
+// #include <Fonts/FreeSansBold12pt7b.h>
+#include <Fonts/FreeSerifBold12pt7b.h>
+#include <Fonts/FreeMonoBold12pt7b.h>
 #include <ArduinoJson.h>
 #include <QRCodeGenerator.h>
 
@@ -25,8 +26,11 @@ GxEPD2_BW<GxEPD2_213_BN, GxEPD2_213_BN::HEIGHT> display(GxEPD2_213_BN(EPD_CS, EP
 QRCode qrcode;
 uint8_t qrcodeData[128];  // Buffer for QR code data (adjust size based on version)
 
+// Watchdog timer
+const int wdtTimeout = 10000;  // tijd in ms tot watchdog ingrijpt
+hw_timer_t *timer = NULL;
 
-// Do not touch the following variables
+// Webserver
 AsyncWebServer server(80);
 AsyncWebSocket ws("/ws");
 DNSServer dnsServer;
@@ -36,19 +40,44 @@ const IPAddress gatewayIP(4, 3, 2, 1);
 const IPAddress subnetMask(255, 255, 255, 0);
 const char localIPURL[] = "http://4.3.2.1";
 
+// Configuration instance
 ConfigUtils config;
 
+int is_ap = 0;
+String ssid = "unset";
+int WIFI_CHANNEL = 1;
+int topicIndex = 0;
+
+// Timing / display
 unsigned long nextWordTime = 0;
 unsigned long minInterval = 1000;  // min interval in ms
 unsigned long maxInterval = 2000;  // max interval in ms
 String lastDisplayedWord = "";
 bool newWordReceived = false;
 String recievedWord = "";
+String infoMode = "";
+int infoInterval = 5;
 
-int is_ap = 0;
-String ssid = "unset";
-int WIFI_CHANNEL = 1;
-int topicIndex = 0;
+/* Utility functions */
+
+void enforceSSIDLimit() {
+  /* 
+  WiFi.softAP truncates the ssid to 31 + \0 chars. 
+  Truncate here so we print the proper ssid
+  */
+  int byteCount = strlen(ssid.c_str());  // Get actual byte size
+
+  // Trim while the byte count is over 31
+  while (byteCount > 31) {
+    ssid.remove(ssid.length() - 1);    // Remove last character
+    byteCount = strlen(ssid.c_str());  // Recalculate size
+  }
+}
+
+void ARDUINO_ISR_ATTR resetModule() {
+  ets_printf("reboot\n");
+  esp_restart();
+}
 
 String parseAndStoreRecievedWord(String recievedWord) {
   int topic = 0;
@@ -70,7 +99,6 @@ String parseAndStoreRecievedWord(String recievedWord) {
 }
 
 /** End points **/
-
 
 void handleMessageEndpoint(AsyncWebServerRequest *request) {
   String response = "ok";
@@ -103,6 +131,7 @@ void handleUpdateDisplayEndpoint(AsyncWebServerRequest *request) {
     if (request->hasParam("question", true)) {
       q = request->getParam("question", true)->value();
     }
+    nextWordTime = millis() + random(minInterval, maxInterval);  // make sure the word has time to display
     setDisplayText(q, text);
     saveMessageToFile(text);
     sendData(text);
@@ -124,11 +153,19 @@ void customEndPoints() {
 void setDisplayText(String header, String text) {
   display.setFullWindow();
   display.setTextColor(GxEPD_BLACK);
+  // pick a random font
   display.setFont(&FreeSans12pt7b);
+  int r = random(3);
+  if (r == 1) {
+    display.setFont(&FreeMonoBold12pt7b);
+  } else if (r == 2) {
+    display.setFont(&FreeSerifBold12pt7b);
+  }
+
   int16_t tbx, tby;
   uint16_t tbw, tbh;
   display.getTextBounds(text, 0, 0, &tbx, &tby, &tbw, &tbh);
-  uint16_t x = ((display.width() - tbw) / 2) - tbx;  // maybe 0 for left align?
+  uint16_t x = 0;  // ((display.width() - tbw) / 2) - tbx;  // centering is problematic for second line
   uint16_t y = ((display.height() - tbh) / 2) - tby;
   display.firstPage();
   do {
@@ -188,36 +225,18 @@ void showQRCode() {
 //   } while (display.nextPage());
 // }
 
-void displayRandomWord() {
-  std::vector<String> words = getMessagesFromFile();
-
-  if (!words.empty()) {
-    String word = words[random(words.size())];  // Pick a random word
-    Serial.println("Picked word: " + word);
-    if (word != lastDisplayedWord) {
-      setDisplayText("", word);
-      lastDisplayedWord = word;
-    }
+void displayRandomMessage() {
+  // std::vector<String> words = getMessagesFromFile();
+  String word = getRandomMessage();
+  Serial.println("Picked word: " + word);
+  if (word != lastDisplayedWord) {
+    setDisplayText("", word);
+    lastDisplayedWord = word;
   }
-
   nextWordTime = millis() + random(minInterval, maxInterval);  // Schedule next display
 }
 
 /** Configuration **/
-
-void enforceSSIDLimit() {
-  /* 
-  WiFi.softAP truncates the ssid to 31 + \0 chars. 
-  Truncate here so we print the proper ssid
-  */
-  int byteCount = strlen(ssid.c_str());  // Get actual byte size
-
-  // Trim while the byte count is over 31
-  while (byteCount > 31) {
-    ssid.remove(ssid.length() - 1);    // Remove last character
-    byteCount = strlen(ssid.c_str());  // Recalculate size
-  }
-}
 
 void loadConfig() {
   if (!config.load()) {
@@ -229,8 +248,10 @@ void loadConfig() {
   is_ap = config.getInt("is_ap");
   WIFI_CHANNEL = config.getInt("channel");
   topicIndex = config.getInt("topic");
-  minInterval = config.getInt("minInterval");
-  maxInterval = config.getInt("maxInterval");
+  infoMode = config.getString("info_mode");
+  infoInterval = config.getInt("info_interval");
+  minInterval = config.getInt("min_interval");
+  maxInterval = config.getInt("max_interval");
 
   JsonArray topics = config.getArray("topics");
   if (topics.size() == 0 || topicIndex < 0 || topicIndex >= (int)topics.size()) {
@@ -291,17 +312,18 @@ void setup() {
   esp_now_register_send_cb(OnDataSent);
   esp_now_register_recv_cb(OnDataRecv);
   initBroadcastClients();
-  if (is_ap == 1) {
-    showQRCode();
-    nextWordTime = millis() + maxInterval;
-  } else {
-    nextWordTime = millis();  // Start right away
-  }
+  
+  // Watchdog timeout op 10 seconden
+  timer = timerBegin(1000000);                     // timer op 1MHz resolutie
+  timerAttachInterrupt(timer, &resetModule);       // callback koppelen
+  timerAlarm(timer, wdtTimeout * 1000, false, 0);  // timeout instellen in us
 
   pinMode(39, INPUT_PULLUP);
   if (digitalRead(39) == LOW) {  // hold btn during boot to see all stored messages
     printAllMessages();
   }
+
+  nextWordTime = millis();  // Start right away
 }
 
 int wordCounter = 0;
@@ -317,12 +339,21 @@ void loop() {
     setDisplayText("", word);
   } else if (millis() >= nextWordTime) {
     wordCounter++;
-    if (wordCounter < 5) {
-      displayRandomWord();
-    } else {
+    if (infoMode == "QR" && wordCounter == infoInterval ) {
       wordCounter = 0;
       nextWordTime = millis() + random(minInterval, maxInterval);  // Schedule next display
       showQRCode();
+    } else if ( infoMode == "SSID" && wordCounter == infoInterval) {
+      wordCounter = 0;
+      nextWordTime = millis() + random(minInterval, maxInterval);  // Schedule next display
+      setDisplayText("", ssid);
+    } else {
+      displayRandomMessage();
     }
+  }
+
+  timerWrite(timer, 0);  // reset timer (feed watchdog)
+  if (millis() > 86400000) {  // reboot the ESP32 every 24h.
+    ESP.restart();
   }
 }

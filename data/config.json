@@ -1,6 +1,6 @@
 {
-    "is_ap": 0,
-    "topic": 1,
+    "is_ap": 1,
+    "topic": 2,
     "channel" : 1,
     "topics": [
         "closed source",
@@ -12,6 +12,8 @@
         "｡Bumpy tool adventures!｡",
         "˚Collective tool ecologies˚"
     ],
-    "minInterval": 10000,
-    "maxInterval": 20000
+    "info_mode": "SSID",
+    "info_interval": 5,
+    "min_interval": 10000,
+    "max_interval": 20000
 }
