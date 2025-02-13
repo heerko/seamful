@@ -37,7 +37,7 @@ data/config.json
         "closed source",
         "open source",
         "network imaginaries"
-    ], [string array] List of topics.
+    ], [string array] List of topics. No longer used, only as labels internally.
 - "ssids": [
         "･ﾟﾟ･｡Smooth ride?*･",
         "｡Bumpy tool adventures!｡",
