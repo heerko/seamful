@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Seamful File Editor</title>
+</head>
+
+<body>
+    <h2>Seamful File Editor</h2>
+
+    <label for="fileSelect">Select File:</label>
+    <select id="fileSelect"></select>
+    <button onclick="loadFile()">Load</button>
+    <button onclick="downloadFile()">Download</button>
+    <button onclick="deleteFile()">Delete</button>
+
+    <textarea id="editor" style="width:100%; height:300px;"></textarea>
+
+    <button onclick="saveFile()">Save</button>
+
+    <script>
+        async function listFiles() {
+            let response = await fetch('/list');
+            let files = await response.json();
+            let fileSelect = document.getElementById('fileSelect');
+            fileSelect.innerHTML = "";
+            files.forEach(file => {
+                let option = document.createElement("option");
+                option.value = file;
+                option.textContent = file;
+                fileSelect.appendChild(option);
+            });
+        }
+
+        async function loadFile() {
+            let file = document.getElementById('fileSelect').value;
+            let response = await fetch('/edit?file=' + encodeURIComponent(file));
+
+            if (!response.ok) {
+                alert("Error loading file: " + response.statusText);
+                return;
+            }
+
+            let reader = response.body.getReader();
+            let decoder = new TextDecoder();
+            let textarea = document.getElementById('editor');
+            textarea.value = ""; // Leegmaken
+
+            // **Stream data in kleine stukjes**
+            while (true) {
+                const { value, done } = await reader.read();
+                if (done) break;
+                textarea.value += decoder.decode(value, { stream: true });
+            }
+        }
+
+        async function saveFile() {
+            let file = document.getElementById('fileSelect').value;
+            let content = document.getElementById('editor').value;
+
+            let formData = new URLSearchParams();
+            formData.append("file", file);
+            formData.append("content", content);
+
+            let response = await fetch('/save', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                body: formData.toString()
+            });
+
+            alert(await response.text());
+        }
+
+        function downloadFile() {
+            let file = document.getElementById('fileSelect').value;
+            window.location.href = "/download?file=" + encodeURIComponent(file);
+        }
+
+        async function deleteFile() {
+            let file = document.getElementById('fileSelect').value;
+            if (!confirm(`Are you sure you want to delete "${file}"?`)) return;
+
+            let response = await fetch('/delete', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                body: new URLSearchParams({ file: file })
+            });
+
+            alert(await response.text());
+            listFiles();
+        }
+
+        listFiles(); // Haal bestanden op bij het laden van de pagina
+    </script>
+</body>
+
+</html>

@@ -26,6 +26,10 @@ void getSSIDFromFS();
 void setUpDNSServer(DNSServer &dnsServer, const IPAddress &localIP);
 void startSoftAccessPoint(const char *ssid, const char *password, const IPAddress &localIP, const IPAddress &gatewayIP);
 void setUpWebserver(AsyncWebServer &server, const IPAddress &localIP);
+void handleListFiles(AsyncWebServerRequest *request);
+void handleEditFile(AsyncWebServerRequest *request);
+void handleSaveFile(AsyncWebServerRequest *request);
+void handleDownloadFile(AsyncWebServerRequest *request);
 
 // Functies voor WebSocket
 void handleWebSocketMessage(void *arg, uint8_t *data, size_t len);

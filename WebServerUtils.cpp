@@ -41,6 +41,131 @@ void startSoftAccessPoint(const char *ssid, const char *password, const IPAddres
   }
 }
 
+// ---- Bestandenlijst ophalen ----
+void handleListFiles(AsyncWebServerRequest *request) {
+  String fileList = "[";
+  File root = LittleFS.open("/");
+  File file = root.openNextFile();
+  while (file) {
+    if (fileList.length() > 1) fileList += ",";
+    fileList += "\"" + String(file.name()) + "\"";
+    file = root.openNextFile();
+  }
+  fileList += "]";
+  request->send(200, "application/json", fileList);
+}
+
+// ---- Bestand lezen ----
+void handleEditFile(AsyncWebServerRequest *request) {
+    if (!request->hasParam("file")) {
+        request->send(400, "text/plain", "Missing file parameter");
+        return;
+    }
+
+    String filename = request->getParam("file")->value();
+    
+    if (!filename.startsWith("/")) {
+        filename = "/" + filename;
+    }
+
+    if (!LittleFS.exists(filename)) {
+        Serial.print("File NOT found: ");
+        Serial.println(filename);
+        request->send(404, "text/plain", "File not found");
+        return;
+    }
+
+    Serial.print("Streaming file: ");
+    Serial.println(filename);
+
+    request->send(LittleFS, filename, "text/plain", false); // **Stream bestand**
+}
+
+// ---- Bestand opslaan via POST ----
+void handleSaveFile(AsyncWebServerRequest *request) {
+    if (!request->hasParam("file", true) || !request->hasParam("content", true)) {
+        request->send(400, "text/plain", "Missing file or content parameter");
+        return;
+    }
+
+    String filename = request->getParam("file", true)->value();
+    String content = request->getParam("content", true)->value();
+
+    if (!filename.startsWith("/")) {
+        filename = "/" + filename;
+    }
+
+    Serial.print("Saving file: ");
+    Serial.println(filename);
+
+    File file = LittleFS.open(filename, "w");
+    if (!file) {
+        Serial.println("ERROR: Failed to open file for writing");
+        request->send(500, "text/plain", "Failed to open file");
+        return;
+    }
+
+    file.print(content);
+    file.close();
+
+    Serial.println("File saved successfully!");
+    request->send(200, "text/plain", "File saved successfully");
+}
+
+void handleDownloadFile(AsyncWebServerRequest *request) {
+    if (!request->hasParam("file")) {
+        request->send(400, "text/plain", "Missing file parameter");
+        return;
+    }
+
+    String filename = request->getParam("file")->value();
+
+    if (!filename.startsWith("/")) {
+        filename = "/" + filename;
+    }
+
+    if (!LittleFS.exists(filename)) {
+        Serial.print("Download failed. File not found: ");
+        Serial.println(filename);
+        request->send(404, "text/plain", "File not found");
+        return;
+    }
+
+    Serial.print("Serving file for download: ");
+    Serial.println(filename);
+    request->send(LittleFS, filename, String(), true); // `true` forceert download
+}
+
+void handleDeleteFile(AsyncWebServerRequest *request) {
+    if (request->args() == 0) { 
+        request->send(400, "text/plain", "Missing file parameter");
+        return;
+    }
+
+    String filename = request->arg("file");
+
+    if (!filename.startsWith("/")) {
+        filename = "/" + filename;
+    }
+
+    if (!LittleFS.exists(filename)) {
+        Serial.print("File NOT found: ");
+        Serial.println(filename);
+        request->send(404, "text/plain", "File not found");
+        return;
+    }
+
+    if (LittleFS.remove(filename)) {
+        Serial.print("Deleted file: ");
+        Serial.println(filename);
+        request->send(200, "text/plain", "File deleted successfully");
+    } else {
+        Serial.print("Failed to delete file: ");
+        Serial.println(filename);
+        request->send(500, "text/plain", "Failed to delete file");
+    }
+}
+
 void setUpWebserver(AsyncWebServer &server, const IPAddress &localIP) {
   // Serve static files and ensure "/" loads index.html for captive portal
   server.serveStatic("/", LittleFS, "/").setDefaultFile("index.html");
@@ -64,6 +189,17 @@ void setUpWebserver(AsyncWebServer &server, const IPAddress &localIP) {
     request->redirect("/index.html");
   });
 
+  // Webpagina (editor)
+  server.on("/editor", HTTP_GET, [](AsyncWebServerRequest *request) {
+    request->send(LittleFS, "/editor.html", "text/html");
+  });
+
+  // API routes
+  server.on("/list", HTTP_GET, handleListFiles);
+  server.on("/edit", HTTP_GET, handleEditFile);
+  server.on("/save", HTTP_POST, handleSaveFile);
+  server.on("/download", HTTP_GET, handleDownloadFile);
+  server.on("/delete", HTTP_POST, handleDeleteFile);
 
   // Routes specifiek voor netwerkconnectiviteit
   server.on("/connecttest.txt", [](AsyncWebServerRequest *request) {

@@ -32,6 +32,31 @@
       font-weight: normal;
     }
 
+    button {
+      background: white;
+      border: 1px solid black;
+      color: black;
+      border-radius: 10px;
+      padding: 10px 10px 5px 10px;
+      text-transform: uppercase;
+      font-family: "dindong";
+      margin-top: 1rem;
+      box-shadow: 0 0 1rem black;
+      font-weight: bolder;
+      font-size: 1.5rem;
+    }
+
+    textarea {
+      display: block;
+      margin: 0 auto;
+    }
+
+    input,
+    textarea {
+      font-size: 16px !important;
+      /* ✅ iOS zoom-fix */
+    }
+
     .question {
       font-family: "dindong";
       font-size: 2rem;
@@ -63,7 +88,8 @@
   <div class="question"></div>
   <form id="displayForm">
     <label for="text">[ Share your thoughts here ] (max 90 chars):</label><br>
-    <input type="text" id="text" name="text" required maxlength="90"><br><br>
+    <!-- <input type="text" id="text" name="text" required maxlength="90"><br><br> -->
+    <textarea id="text" name="text" required maxlength="90" minlength="1" style="width:90%;" rows="2"></textarea>
     <button type="submit">Send</button>
     <span class="feedback"></span>
   </form>
@@ -86,12 +112,13 @@
       feedbackEl.textContent = "";
       responseElement.textContent = "";
 
+      document.getElementsByTagName("button")[0].style.display = "none";
       // if (text.split(" ").length > 1) {
       //   feedbackEl.innerHTML = "Please answer in a single word.";
       //   return;
       // }
       const cleanedText = profanityCleaner.clean(text, { keepFirstAndLastChar: true });
-      
+
       try {
         const response = await fetch('/update-display', {
           method: 'POST',
