@@ -1,4 +1,3 @@
-
 #include <LittleFS.h>
 #include <DNSServer.h>
 #include <GxEPD2_BW.h>
@@ -290,6 +289,7 @@ void setup() {
   }
   listFiles();
   loadConfig();
+  initializeMessagesFile();
 
   display.init(115200);
   display.setRotation(1);

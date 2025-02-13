@@ -4,7 +4,11 @@
 #include <Arduino.h>
 #include <LittleFS.h>
 
+
+extern int topicIndex;
+
 bool initFileSystem();
+void initializeMessagesFile();
 void saveMessageToFile(const String &message);
 std::vector<String> getMessagesFromFile();
 void trimOldMessages();

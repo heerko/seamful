@@ -1,0 +1,75 @@
+0|Money.
+0|Adobe.
+0|Updates breaking everything.
+0|Locked files.
+0|Always online.
+0|Creative Cloud is a cage.
+0|Too polished, too predictable.
+0|I miss owning my tools.
+0|Subscription fatigue.
+0|Why can’t I export this?
+0|Monopoly.
+0|Everything looks the same.
+0|Algorithms deciding my colors.
+0|No escape.
+0|Endless pop-ups.
+0|They change the UI for no reason.
+0|Power in their hands, not mine.
+0|The rent is too damn high!
+0|Where’s my data going?
+0|Proprietary prison.
+0|Buttons but no freedom.
+0|I just click “agree” without reading.
+0|Hidden fees.
+0|Can’t install on my old laptop.
+0|Missing: true customization.
+1|Code.
+1|Community.
+1|Messy but mine.
+1|I shape my own workflow.
+1|Trial and error.
+1|Glitches welcome!
+1|No subscriptions, no stress.
+1|A learning curve, but worth it.
+1|DIY spirit.
+1|Infinite tools, infinite bugs.
+1|I break it, I fix it.
+1|Tweak everything.
+1|Freedom is not asking permission.
+1|Feels like hacking.
+1|The wild west of design.
+1|Hard at first, but then addicting.
+1|Less polish, more control.
+1|Less ads, more creativity.
+1|I contribute, I benefit.
+1|Not owned, just shared.
+1|Community over company.
+1|Ugly UI but beautiful ethics.
+1|It’s like Legos for designers.
+1|Where do I even start?
+1|Power to the people!
+2|Handmade.
+2|Analogue meets digital.
+2|Imperfection is beauty.
+2|Tools that don’t assume.
+2|What if design had no software?
+2|Give me glitches, not guidelines.
+2|Radical play.
+2|Tactile, not just pixels.
+2|Sketchbooks never crash.
+2|More friction, less automation.
+2|Why optimize everything?
+2|Slow design.
+2|Randomness = creativity.
+2|An open-source risograph.
+2|Code + craft.
+2|Not software, but systems.
+2|A tool that learns from me.
+2|Design as a conversation.
+2|Unfinished on purpose.
+2|Personal, not prescriptive.
+2|Less tools, more thinking.
+2|What if everyone built their own tools?
+2|Hybrid workflows.
+2|Collaboration over competition.
+2|The best tool? Your hands.
