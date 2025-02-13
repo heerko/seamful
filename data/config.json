@@ -14,6 +14,6 @@
     ],
     "info_mode": "SSID",
     "info_interval": 5,
-    "min_interval": 10000,
-    "max_interval": 20000
+    "min_interval": 15000,
+    "max_interval": 30000
 }

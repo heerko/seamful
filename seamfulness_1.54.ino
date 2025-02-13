@@ -252,19 +252,10 @@ void loadConfig() {
   minInterval = config.getInt("min_interval");
   maxInterval = config.getInt("max_interval");
 
-  JsonArray topics = config.getArray("topics");
-  if (topics.size() == 0 || topicIndex < 0 || topicIndex >= (int)topics.size()) {
-    Serial.println("ERROR: Invalid topic index or missing topics array.");
-    while (true)
-      ;  // Halt system
-  }
-
-  String topic = topics[topicIndex].as<String>();
-
   JsonArray ssids = config.getArray("ssids");
-  if (ssids.size() == 0 || ssids.size() < topics.size()) {
+  if (ssids.size() == 0 || ssids.size() < 3 ) {
     Serial.println("ERROR: Missing ssids array or size mismatch.");
-    ssid = String(topic);
+    ssid = "Seamless";
   } else {
     ssid = ssids[topicIndex].as<String>();
   }
@@ -275,11 +266,11 @@ void loadConfig() {
   Serial.print("is_ap: ");
   Serial.println(is_ap);
   Serial.print("SSID: ");
-  Serial.println(ssid);
+  Serial.print(ssid);
+  Serial.print(" , topic: ");
+  Serial.println(topicIndex);
   Serial.print("Channel: ");
   Serial.println(WIFI_CHANNEL);
-  Serial.print("Topic: ");
-  Serial.println(topic);
 }
 
 void setup() {
@@ -312,7 +303,7 @@ void setup() {
   esp_now_register_send_cb(OnDataSent);
   esp_now_register_recv_cb(OnDataRecv);
   initBroadcastClients();
-  
+
   // Watchdog timeout op 10 seconden
   timer = timerBegin(1000000);                     // timer op 1MHz resolutie
   timerAttachInterrupt(timer, &resetModule);       // callback koppelen
@@ -339,11 +330,11 @@ void loop() {
     setDisplayText("", word);
   } else if (millis() >= nextWordTime) {
     wordCounter++;
-    if (infoMode == "QR" && wordCounter == infoInterval ) {
+    if (infoMode == "QR" && wordCounter == infoInterval) {
       wordCounter = 0;
       nextWordTime = millis() + random(minInterval, maxInterval);  // Schedule next display
       showQRCode();
-    } else if ( infoMode == "SSID" && wordCounter == infoInterval) {
+    } else if (infoMode == "SSID" && wordCounter == infoInterval) {
       wordCounter = 0;
       nextWordTime = millis() + random(minInterval, maxInterval);  // Schedule next display
       setDisplayText("", ssid);
@@ -352,7 +343,7 @@ void loop() {
     }
   }
 
-  timerWrite(timer, 0);  // reset timer (feed watchdog)
+  timerWrite(timer, 0);       // reset timer (feed watchdog)
   if (millis() > 86400000) {  // reboot the ESP32 every 24h.
     ESP.restart();
   }
