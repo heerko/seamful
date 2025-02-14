@@ -78,24 +78,36 @@ void ARDUINO_ISR_ATTR resetModule() {
   esp_restart();
 }
 
-String parseAndStoreRecievedWord(String recievedWord) {
-  int topic = 0;
-  String text = "";
-  if (recievedWord.length() > 2 && recievedWord[1] == '|') {
-    topic = recievedWord.substring(0, 1).toInt();
-    text = recievedWord.substring(2);
-  } else {
-    topic = 0;
-    text = recievedWord;
-  }
-  if (topic == topicIndex && !is_ap) {
-    // store the text
-    Serial.print("saving recieved text: ");
-    Serial.println(text);
-    saveMessageToFile(text);
-  }
-  return text;
-}
+
+// String parseAndStoreRecievedWord(String recievedWord) {
+//     if (recievedWord.length() == 0) return "";  // Ignore empty messages
+
+//     if (!is_ap) {  // Only clients should store messages
+//         Serial.printf("Saving received text: %s\n", recievedWord.c_str());
+//         saveMessageToFile(recievedWord);
+//     }
+
+//     return recievedWord;
+// }
+
+// String parseAndStoreRecievedWord(String recievedWord) {
+//   int topic = 0;
+//   String text = "";
+//   if (recievedWord.length() > 2 && recievedWord[1] == '|') {
+//     topic = recievedWord.substring(0, 1).toInt();
+//     text = recievedWord.substring(2);
+//   } else {
+//     topic = 0;
+//     text = recievedWord;
+//   }
+//   if (topic == topicIndex && !is_ap) {
+//     // store the text
+//     Serial.print("saving recieved text: ");
+//     Serial.println(text);
+//     saveMessageToFile(text);
+//   }
+//   return text;
+// }
 
 /** End points **/
 
@@ -253,7 +265,7 @@ void loadConfig() {
   maxInterval = config.getInt("max_interval");
 
   JsonArray ssids = config.getArray("ssids");
-  if (ssids.size() == 0 || ssids.size() < 3 ) {
+  if (ssids.size() == 0 || ssids.size() < 3) {
     Serial.println("ERROR: Missing ssids array or size mismatch.");
     ssid = "Seamless";
   } else {
@@ -318,28 +330,41 @@ void setup() {
 }
 
 int wordCounter = 0;
+static unsigned long lastSendTime = 0;
 
 void loop() {
   dnsServer.processNextRequest();
   ws.cleanupClients();
 
+  // if (millis() - lastSendTime > 2000) {  // Send every 2 seconds
+  //   lastSendTime = millis();
+
+  //   sendData("TEST_MESSAGE_FROM_CLIENT");  // Send test message
+  // }
+
+
   if (newWordReceived) {
     newWordReceived = false;
     nextWordTime = millis() + random(minInterval, maxInterval);
-    String word = parseAndStoreRecievedWord(recievedWord);
-    setDisplayText("", word);
+    // String word = parseAndStoreRecievedWord(recievedWord);
+    setDisplayText("", recievedWord);
   } else if (millis() >= nextWordTime) {
     wordCounter++;
-    if (infoMode == "QR" && wordCounter == infoInterval) {
+    if (infoMode == "QR" && wordCounter == infoInterval) {  // display the QR code
       wordCounter = 0;
-      nextWordTime = millis() + random(minInterval, maxInterval);  // Schedule next display
+      nextWordTime = millis() + random(minInterval, maxInterval);
       showQRCode();
-    } else if (infoMode == "SSID" && wordCounter == infoInterval) {
+    } else if (infoMode == "SSID" && wordCounter == infoInterval) {  // display the SSID
       wordCounter = 0;
       nextWordTime = millis() + random(minInterval, maxInterval);  // Schedule next display
       setDisplayText("", ssid);
-    } else {
-      displayRandomMessage();
+    } else {         // display a random stored message
+      if (!is_ap) {  // Client requests a message from AP
+        requestMessage();
+        nextWordTime = millis() + 1000; // wait 1s for new message to come in. 
+      } else { // AP just gets a message and displays it
+        displayRandomMessage();
+      }
     }
   }
 
