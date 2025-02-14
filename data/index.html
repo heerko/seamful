@@ -46,15 +46,24 @@
       font-size: 1.5rem;
     }
 
+    input,
+    textarea {
+      font-size: 16px !important;
+    }
+
     textarea {
       display: block;
       margin: 0 auto;
     }
 
-    input,
-    textarea {
-      font-size: 16px !important;
-      /* ✅ iOS zoom-fix */
+    input {
+      width: 90%;
+      font-size: 3rem;
+      padding: 3px;
+      border: 2px solid black;
+      border-radius: 10px;
+      margin-top: 1rem;
+      padding: .5rem;
     }
 
     .question {
@@ -74,6 +83,10 @@
       color: red;
       display: block;
     }
+
+    .hide {
+      display: none;
+    }
   </style>
 </head>
 
@@ -88,8 +101,8 @@
   <div class="question"></div>
   <form id="displayForm">
     <label for="text">[ Share your thoughts here ] (max 90 chars):</label><br>
-    <!-- <input type="text" id="text" name="text" required maxlength="90"><br><br> -->
-    <textarea id="text" name="text" required maxlength="90" minlength="1" style="width:90%;" rows="2"></textarea>
+    <input type="text" id="text" name="text" required maxlength="90"><br><br>
+    <!-- <textarea id="text" name="text" required maxlength="90" minlength="1" style="width:90%;" rows="2"></textarea> -->
     <button type="submit">Send</button>
     <span class="feedback"></span>
   </form>
@@ -112,7 +125,7 @@
       feedbackEl.textContent = "";
       responseElement.textContent = "";
 
-      document.getElementsByTagName("button")[0].style.display = "none";
+      document.getElementsByTagName("button")[0].class.add("hide");
       // if (text.split(" ").length > 1) {
       //   feedbackEl.innerHTML = "Please answer in a single word.";
       //   return;
@@ -130,6 +143,7 @@
           const responseText = await response.text();
           responseElement.textContent = "Sent!";
           document.getElementById("text").value = "";
+          document.getElementsByTagName("button")[0].class.remove("hide");
         } else {
           responseElement.textContent = `Error: ${response.status} ${response.statusText}`;
         }

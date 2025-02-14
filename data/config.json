@@ -1,12 +1,7 @@
 {
-    "is_ap": 1,
-    "topic": 2,
+    "is_ap": 0,
+    "topic": 0,
     "channel" : 1,
-    "topics": [
-        "closed source",
-        "open source",
-        "network imaginaries"
-    ],
     "ssids": [
         "･ﾟﾟ･｡Smooth ride?*･",
         "｡Bumpy tool adventures!｡",
