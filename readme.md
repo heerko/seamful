@@ -14,11 +14,6 @@ data/config.json
     "is_ap": 0,
     "topic": 2,
     "channel" : 1,
-    "topics": [
-        "closed source",
-        "open source",
-        "network imaginaries"
-    ],
     "ssids": [
         "･ﾟﾟ･｡Smooth ride?*･",
         "｡Bumpy tool adventures!｡",
@@ -33,11 +28,6 @@ data/config.json
 - "is_ap": [bool] This module functions as a access point
 - "topic": [int] Index of the topic to display
 - "channel": [int] Wifi channel
-- "topics": [
-        "closed source",
-        "open source",
-        "network imaginaries"
-    ], [string array] List of topics. No longer used, only as labels internally.
 - "ssids": [
         "･ﾟﾟ･｡Smooth ride?*･",
         "｡Bumpy tool adventures!｡",
