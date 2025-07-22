@@ -57,114 +57,120 @@ void handleListFiles(AsyncWebServerRequest *request) {
 
 // ---- Bestand lezen ----
 void handleEditFile(AsyncWebServerRequest *request) {
-    if (!request->hasParam("file")) {
-        request->send(400, "text/plain", "Missing file parameter");
-        return;
-    }
+  if (!request->hasParam("file")) {
+    request->send(400, "text/plain", "Missing file parameter");
+    return;
+  }
 
-    String filename = request->getParam("file")->value();
-    
-    if (!filename.startsWith("/")) {
-        filename = "/" + filename;
-    }
+  String filename = request->getParam("file")->value();
+  if (!filename.startsWith("/")) {
+    filename = "/" + filename;
+  }
 
-    if (!LittleFS.exists(filename)) {
-        Serial.print("File NOT found: ");
-        Serial.println(filename);
-        request->send(404, "text/plain", "File not found");
-        return;
-    }
-
-    Serial.print("Streaming file: ");
+  if (!LittleFS.exists(filename)) {
+    Serial.print("File NOT found: ");
     Serial.println(filename);
+    request->send(404, "text/plain", "File not found");
+    return;
+  }
 
-    request->send(LittleFS, filename, "text/plain", false); // **Stream bestand**
+  Serial.print("Streaming file: ");
+  Serial.println(filename);
+
+  request->send(LittleFS, filename, "text/plain", false);  // **Stream bestand**
 }
 
 // ---- Bestand opslaan via POST ----
 void handleSaveFile(AsyncWebServerRequest *request) {
-    if (!request->hasParam("file", true) || !request->hasParam("content", true)) {
-        request->send(400, "text/plain", "Missing file or content parameter");
-        return;
-    }
+  if (!request->hasParam("file", true) || !request->hasParam("content", true)) {
+    request->send(400, "text/plain", "Missing file or content parameter");
+    return;
+  }
 
-    String filename = request->getParam("file", true)->value();
-    String content = request->getParam("content", true)->value();
+  String filename = request->getParam("file", true)->value();
+  String content = request->getParam("content", true)->value();
 
-    if (!filename.startsWith("/")) {
-        filename = "/" + filename;
-    }
+  if (!filename.startsWith("/")) {
+    filename = "/" + filename;
+  }
 
-    Serial.print("Saving file: ");
-    Serial.println(filename);
+  Serial.print("Saving file: ");
+  Serial.println(filename);
 
-    File file = LittleFS.open(filename, "w");
-    if (!file) {
-        Serial.println("ERROR: Failed to open file for writing");
-        request->send(500, "text/plain", "Failed to open file");
-        return;
-    }
+  File file = LittleFS.open(filename, "w");
+  if (!file) {
+    Serial.println("ERROR: Failed to open file for writing");
+    request->send(500, "text/plain", "Failed to open file");
+    return;
+  }
 
-    file.print(content);
-    file.close();
+  file.print(content);
+  file.close();
 
-    Serial.println("File saved successfully!");
-    request->send(200, "text/plain", "File saved successfully");
+  Serial.println("File saved successfully!");
+  request->send(200, "text/plain", "File saved successfully");
 }
 
 void handleDownloadFile(AsyncWebServerRequest *request) {
-    if (!request->hasParam("file")) {
-        request->send(400, "text/plain", "Missing file parameter");
-        return;
-    }
+  if (!request->hasParam("file")) {
+    request->send(400, "text/plain", "Missing file parameter");
+    return;
+  }
 
-    String filename = request->getParam("file")->value();
+  String filename = request->getParam("file")->value();
 
-    if (!filename.startsWith("/")) {
-        filename = "/" + filename;
-    }
+  if (!filename.startsWith("/")) {
+    filename = "/" + filename;
+  }
 
-    if (!LittleFS.exists(filename)) {
-        Serial.print("Download failed. File not found: ");
-        Serial.println(filename);
-        request->send(404, "text/plain", "File not found");
-        return;
-    }
-
-    Serial.print("Serving file for download: ");
+  if (!LittleFS.exists(filename)) {
+    Serial.print("Download failed. File not found: ");
     Serial.println(filename);
-    request->send(LittleFS, filename, String(), true); // `true` forceert download
+    request->send(404, "text/plain", "File not found");
+    return;
+  }
+
+  Serial.print("Serving file for download: ");
+  Serial.println(filename);
+  request->send(LittleFS, filename, String(), true);  // `true` forceert download
 }
 
 void handleDeleteFile(AsyncWebServerRequest *request) {
-    if (request->args() == 0) { 
-        request->send(400, "text/plain", "Missing file parameter");
-        return;
-    }
+  if (request->args() == 0) {
+    request->send(400, "text/plain", "Missing file parameter");
+    return;
+  }
 
-    String filename = request->arg("file");
+  String filename = request->arg("file");
 
-    if (!filename.startsWith("/")) {
-        filename = "/" + filename;
-    }
+  if (!filename.startsWith("/")) {
+    filename = "/" + filename;
+  }
 
-    if (!LittleFS.exists(filename)) {
-        Serial.print("File NOT found: ");
-        Serial.println(filename);
-        request->send(404, "text/plain", "File not found");
-        return;
-    }
+  if (!LittleFS.exists(filename)) {
+    Serial.print("File NOT found: ");
+    Serial.println(filename);
+    request->send(404, "text/plain", "File not found");
+    return;
+  }
 
-    if (LittleFS.remove(filename)) {
-        Serial.print("Deleted file: ");
-        Serial.println(filename);
-        request->send(200, "text/plain", "File deleted successfully");
-    } else {
-        Serial.print("Failed to delete file: ");
-        Serial.println(filename);
-        request->send(500, "text/plain", "Failed to delete file");
-    }
+  if (LittleFS.remove(filename)) {
+    Serial.print("Deleted file: ");
+    Serial.println(filename);
+    request->send(200, "text/plain", "File deleted successfully");
+  } else {
+    Serial.print("Failed to delete file: ");
+    Serial.println(filename);
+    request->send(500, "text/plain", "Failed to delete file");
+  }
 }
+
+void handleReboot(AsyncWebServerRequest *request) {
+  request->send(200, "text/plain", "ESP32 will now reboot. Reload try a reload in 15s");
+  delay(500);
+  ESP.restart();
+}
+
 
 void setUpWebserver(AsyncWebServer &server, const IPAddress &localIP) {
   // Serve static files and ensure "/" loads index.html for captive portal
@@ -200,6 +206,7 @@ void setUpWebserver(AsyncWebServer &server, const IPAddress &localIP) {
   server.on("/save", HTTP_POST, handleSaveFile);
   server.on("/download", HTTP_GET, handleDownloadFile);
   server.on("/delete", HTTP_POST, handleDeleteFile);
+  server.on("/reboot", HTTP_POST, handleReboot);
 
   // Routes specifiek voor netwerkconnectiviteit
   server.on("/connecttest.txt", [](AsyncWebServerRequest *request) {
