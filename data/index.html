@@ -125,7 +125,7 @@
       feedbackEl.textContent = "";
       responseElement.textContent = "";
 
-      document.getElementsByTagName("button")[0].class.add("hide");
+      document.getElementsByTagName("button")[0].classList.add("hide");
       // if (text.split(" ").length > 1) {
       //   feedbackEl.innerHTML = "Please answer in a single word.";
       //   return;
@@ -143,7 +143,7 @@
           const responseText = await response.text();
           responseElement.textContent = "Sent!";
           document.getElementById("text").value = "";
-          document.getElementsByTagName("button")[0].class.remove("hide");
+          document.getElementsByTagName("button")[0].classList.remove("hide");
         } else {
           responseElement.textContent = `Error: ${response.status} ${response.statusText}`;
         }
