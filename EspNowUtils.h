@@ -13,15 +13,20 @@ extern int topicIndex;
 extern int is_ap;
 static unsigned long lastRequestTime = 0;
 
+/* This is somewhat tricky. Sending a struct over esp-now
+We need to respect the alignment. */
 typedef struct __attribute__((packed)) {
-    int topicIndex;     // Topic index
-    bool isRequest;     // True if it's a request, False if it's a response
-    char message[128];  // Message (empty for requests, filled for responses)
+    int topicIndex;     // 4 bytes (aligned naturally)
+    char message[128];  // 128 bytes (aligned naturally)
+    bool isRequest;     // 1 byte
+    bool isBroadcast;   // 1 byte
 } ESPNowMessage;
+
+static_assert(sizeof(ESPNowMessage) == 134, "Struct size mismatch!");
 
 void InitESPNow();
 void initBroadcastClients();
-void sendData(const String &message);
+void sendData(const String &message, bool isBroadcast);
 void OnDataSent(const uint8_t *mac_addr, esp_now_send_status_t status);
 void OnDataRecv(const esp_now_recv_info *info, const uint8_t *data, int data_len);
 void requestMessage();
