@@ -78,37 +78,6 @@ void ARDUINO_ISR_ATTR resetModule() {
   esp_restart();
 }
 
-
-// String parseAndStoreRecievedWord(String recievedWord) {
-//     if (recievedWord.length() == 0) return "";  // Ignore empty messages
-
-//     if (!is_ap) {  // Only clients should store messages
-//         Serial.printf("Saving received text: %s\n", recievedWord.c_str());
-//         saveMessageToFile(recievedWord);
-//     }
-
-//     return recievedWord;
-// }
-
-// String parseAndStoreRecievedWord(String recievedWord) {
-//   int topic = 0;
-//   String text = "";
-//   if (recievedWord.length() > 2 && recievedWord[1] == '|') {
-//     topic = recievedWord.substring(0, 1).toInt();
-//     text = recievedWord.substring(2);
-//   } else {
-//     topic = 0;
-//     text = recievedWord;
-//   }
-//   if (topic == topicIndex && !is_ap) {
-//     // store the text
-//     Serial.print("saving recieved text: ");
-//     Serial.println(text);
-//     saveMessageToFile(text);
-//   }
-//   return text;
-// }
-
 /** End points **/
 
 void handleMessageEndpoint(AsyncWebServerRequest *request) {
@@ -121,9 +90,6 @@ void handleMessageEndpoint(AsyncWebServerRequest *request) {
     Serial.println("No message param. Nothing to add.");
     response = "Something went wrong. Sorry.";
   }
-
-  // String response = getMessagesFromFile();
-
   request->send(200, "text/plain", response);
 }
 
@@ -145,7 +111,7 @@ void handleUpdateDisplayEndpoint(AsyncWebServerRequest *request) {
     nextWordTime = millis() + random(minInterval, maxInterval);  // make sure the word has time to display
     setDisplayText(q, text);
     saveMessageToFile(text);
-    sendData(text);
+    sendData(text, true);
     request->send(200, "text/plain", "Display updated with: " + text);
   } else {
     request->send(400, "text/plain", "No text provided!");
@@ -297,6 +263,7 @@ void setup() {
   display.init(115200);
   display.setRotation(1);
   display.setFont(&FreeMonoBold9pt7b);
+  display.setTextWrap(true);
 
   if (is_ap == 1) {
     startSoftAccessPoint(ssid.c_str(), NULL, localIP, gatewayIP);
@@ -320,6 +287,8 @@ void setup() {
   timer = timerBegin(1000000);                     // timer op 1MHz resolutie
   timerAttachInterrupt(timer, &resetModule);       // callback koppelen
   timerAlarm(timer, wdtTimeout * 1000, false, 0);  // timeout instellen in us
+
+  Serial.printf("Size of ESPNowMessage: %d bytes\n", sizeof(ESPNowMessage));
 
   pinMode(39, INPUT_PULLUP);
   if (digitalRead(39) == LOW) {  // hold btn during boot to see all stored messages
@@ -361,8 +330,8 @@ void loop() {
     } else {         // display a random stored message
       if (!is_ap) {  // Client requests a message from AP
         requestMessage();
-        nextWordTime = millis() + 1000; // wait 1s for new message to come in. 
-      } else { // AP just gets a message and displays it
+        nextWordTime = millis() + 1000;  // wait 1s for new message to come in.
+      } else {                           // AP just gets a message and displays it
         displayRandomMessage();
       }
     }
